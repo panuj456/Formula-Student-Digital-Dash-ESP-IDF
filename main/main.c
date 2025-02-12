@@ -25,7 +25,7 @@ void app_main()
         // lvgl_port_unlock();
 
         ESP_LOGI("Main", "First LVGL function");
-        create_canvas();
+        //create_canvas();
 
     }
 }
