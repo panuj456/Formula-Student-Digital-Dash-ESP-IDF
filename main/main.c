@@ -6,6 +6,7 @@
 
 #include "waveshare_rgb_lcd_port.h"
 #include "test.h"
+#include "test.c"
 
 void app_main()
 {
