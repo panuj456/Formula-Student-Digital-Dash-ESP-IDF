@@ -1,8 +1,12 @@
 #include "lvgl.h"
+#include "lv_meter.h"
+#include "lv_widgets.h"
+
+lv_obj_t *canvas;
 
 
 static void dash_create(lv_obj_t * parent);
-    {
+{
     lv_meter_scale_t * scale;
     lv_meter_indicator_t * indic;
     meter1 = create_meter_box(parent, "Monthly Target", "Revenue: 63%", "Sales: 44%", "Costs: 58%");
@@ -137,4 +141,42 @@ static void dash_create(lv_obj_t * parent);
 
     lv_obj_align(mbps_label, LV_ALIGN_TOP_MID, 10, lv_pct(55));
     lv_obj_align_to(mbps_unit_label, mbps_label, LV_ALIGN_OUT_RIGHT_BOTTOM, 10, 0);
+}
+
+static void dash_create2(lv_obj_t * parent);
+{
+lv_meter_scale_t * scale;
+lv_meter_indicator_t * indic;
+meter1 = create_meter_box(parent, "RPM", "Revenue: 63%", "Sales: 44%", "Costs: 58%");
+lv_obj_add_flag(lv_obj_get_parent(meter1), LV_OBJ_FLAG_FLEX_IN_NEW_TRACK);
+scale = lv_meter_add_scale(meter1);
+lv_meter_set_scale_range(meter1, scale, 0, 100, 270, 90);
+lv_meter_set_scale_ticks(meter1, scale, 0, 0, 0, lv_color_black());
+
+lv_anim_t a;
+lv_anim_init(&a);
+lv_anim_set_values(&a, 20, 100);
+lv_anim_set_repeat_count(&a, LV_ANIM_REPEAT_INFINITE);
+
+indic = lv_meter_add_arc(meter1, scale, 15, lv_palette_main(LV_PALETTE_BLUE), 0);
+lv_anim_set_exec_cb(&a, meter1_indic1_anim_cb);
+lv_anim_set_var(&a, indic);
+lv_anim_set_time(&a, 4100);
+lv_anim_set_playback_time(&a, 2700);
+lv_anim_start(&a);
+
+indic = lv_meter_add_arc(meter1, scale, 15, lv_palette_main(LV_PALETTE_RED), -20);
+lv_anim_set_exec_cb(&a, meter1_indic2_anim_cb);
+lv_anim_set_var(&a, indic);
+lv_anim_set_time(&a, 2600);
+lv_anim_set_playback_time(&a, 3200);
+a.user_data = indic;
+lv_anim_start(&a);
+
+indic = lv_meter_add_arc(meter1, scale, 15, lv_palette_main(LV_PALETTE_GREEN), -40);
+lv_anim_set_exec_cb(&a, meter1_indic3_anim_cb);
+lv_anim_set_var(&a, indic);
+lv_anim_set_time(&a, 2800);
+lv_anim_set_playback_time(&a, 1800);
+lv_anim_start(&a);
 }
