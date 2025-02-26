@@ -6,7 +6,7 @@
 
 #include "waveshare_rgb_lcd_port.h"
 #include "test.h"
-#include "test.c"
+//#include "test.c"
 //#include "test2.h"
 //#include "test2.c"
 
