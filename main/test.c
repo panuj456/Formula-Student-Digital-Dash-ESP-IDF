@@ -5,6 +5,33 @@
 lv_obj_t *canvas;
 lv_obj_t * obj;
 
+//Type Def
+typedef enum {
+    DISP_SMALL,
+    DISP_MEDIUM,
+    DISP_LARGE,
+} disp_size_t;
+
+//static prototypes
+static lv_obj_t * create_meter_box(lv_obj_t * parent, const char * title, const char * text1, const char * text2,
+    const char * text3);
+
+//statics
+static lv_style_t style_bullet;
+static lv_obj_t * meter1;
+static disp_size_t disp_size;
+static const lv_font_t * font_large;
+static const lv_font_t * font_normal;
+static lv_obj_t * tv;
+static lv_style_t style_text_muted;
+static lv_style_t style_title;
+static uint32_t session_desktop = 1000;
+static uint32_t session_tablet = 1000;
+static uint32_t session_mobile = 1000;
+
+//LV_USE_DEMO_WIDGETS
+//CONFIG_LV_USE_DEMO_WIDGETS
+
 // Define the previous point
 int16_t prev_x = -1;
 int16_t prev_y = -1;
@@ -31,16 +58,89 @@ lv_color_t get_rainbow_color(uint32_t time_ms)
     return lv_color_hsv_to_rgb(hue, 100, 100);
 }
 
-void dash_create2()//(lv_obj_t * parent) //arc
+// cant use without meter objects 
+
+void dash_create2(void)//(lv_obj_t * parent) //arc
 {
+    if(LV_HOR_RES <= 320) disp_size = DISP_SMALL;
+    else if(LV_HOR_RES < 720) disp_size = DISP_MEDIUM;
+    else disp_size = DISP_LARGE;
+
+    font_large = LV_FONT_DEFAULT;
+    font_normal = LV_FONT_DEFAULT;
+
+    lv_coord_t tab_h;
+    if(disp_size == DISP_LARGE) {
+        tab_h = 70;
+#if LV_FONT_MONTSERRAT_24
+        font_large     = &lv_font_montserrat_24;
+#else
+        LV_LOG_WARN("LV_FONT_MONTSERRAT_24 is not enabled for the widgets demo. Using LV_FONT_DEFAULT instead.");
+#endif
+#if LV_FONT_MONTSERRAT_16
+        font_normal    = &lv_font_montserrat_16;
+#else
+        LV_LOG_WARN("LV_FONT_MONTSERRAT_16 is not enabled for the widgets demo. Using LV_FONT_DEFAULT instead.");
+#endif
+    }
+    else if(disp_size == DISP_MEDIUM) {
+        tab_h = 45;
+#if LV_FONT_MONTSERRAT_20
+        font_large     = &lv_font_montserrat_20;
+#else
+        LV_LOG_WARN("LV_FONT_MONTSERRAT_20 is not enabled for the widgets demo. Using LV_FONT_DEFAULT instead.");
+#endif
+#if LV_FONT_MONTSERRAT_14
+        font_normal    = &lv_font_montserrat_14;
+#else
+        LV_LOG_WARN("LV_FONT_MONTSERRAT_14 is not enabled for the widgets demo. Using LV_FONT_DEFAULT instead.");
+#endif
+    }
+    else {   /* disp_size == DISP_SMALL */
+        tab_h = 45;
+#if LV_FONT_MONTSERRAT_18
+        font_large     = &lv_font_montserrat_18;
+#else
+        LV_LOG_WARN("LV_FONT_MONTSERRAT_18 is not enabled for the widgets demo. Using LV_FONT_DEFAULT instead.");
+#endif
+#if LV_FONT_MONTSERRAT_12
+        font_normal    = &lv_font_montserrat_12;
+#else
+        LV_LOG_WARN("LV_FONT_MONTSERRAT_12 is not enabled for the widgets demo. Using LV_FONT_DEFAULT instead.");
+#endif
+    }
+    tv = lv_tabview_create(lv_scr_act(), LV_DIR_TOP, tab_h);
+    lv_obj_set_style_text_font(lv_scr_act(), font_normal, 0);
+    if(disp_size == DISP_LARGE) {
+        lv_obj_t * tab_btns = lv_tabview_get_tab_btns(tv);
+        lv_obj_set_style_pad_left(tab_btns, LV_HOR_RES / 2, 0);
+        lv_obj_t * logo = lv_img_create(tab_btns);
+        LV_IMG_DECLARE(img_lvgl_logo);
+        lv_img_set_src(logo, &img_lvgl_logo);
+        lv_obj_align(logo, LV_ALIGN_LEFT_MID, -LV_HOR_RES / 2 + 25, 0);
+
+        lv_obj_t * label = lv_label_create(tab_btns);
+        lv_obj_add_style(label, &style_title, 0);
+        lv_label_set_text(label, "LVGL v8");
+        lv_obj_align_to(label, logo, LV_ALIGN_OUT_RIGHT_TOP, 10, 0);
+
+        label = lv_label_create(tab_btns);
+        lv_label_set_text(label, "Digital Dash Currently Demo");
+        lv_obj_add_style(label, &style_text_muted, 0);
+        lv_obj_align_to(label, logo, LV_ALIGN_OUT_RIGHT_BOTTOM, 10, 0);
+    }
+    lv_obj_t * tablelabel = lv_tabview_add_tab(tv, "Analytics");
+
+    lv_obj_set_flex_flow(tablelabel, LV_FLEX_FLOW_ROW_WRAP);
     lv_meter_scale_t * scale;
-    lv_meter_indicator_t * indic;
-    lv_meter_t * meter1 = (lv_meter_t *)obj;
-    meter1 = create_meter_box(parent, "RPM", "Revenue: 63%", "Sales: 44%", "Costs: 58%");
+    //lv_meter_t * meter1 = (lv_meter_t *)obj;
+    meter1 = create_meter_box(tablelabel, "RPM", "Revenue: 63%", "Sales: 44%", "Costs: 58%");
     lv_obj_add_flag(lv_obj_get_parent(meter1), LV_OBJ_FLAG_FLEX_IN_NEW_TRACK);
     scale = lv_meter_add_scale(meter1);
     lv_meter_set_scale_range(meter1, scale, 0, 100, 270, 90);
     lv_meter_set_scale_ticks(meter1, scale, 0, 0, 0, lv_color_black());
+    lv_meter_indicator_t * indic;
+    indic = lv_meter_add_arc(meter1, scale, 15, lv_palette_main(LV_PALETTE_BLUE), 0);
 }
 
 void draw_rectangle_on_canvas(int16_t x, int16_t y, uint16_t pressure)
@@ -112,7 +212,77 @@ void draw_rectangle_on_canvas(int16_t x, int16_t y, uint16_t pressure)
     last_touch_time = current_time;
 }
 
+static lv_obj_t * create_meter_box(lv_obj_t * parent, const char * title, const char * text1, const char * text2,
+    const char * text3)
+{
+lv_obj_t * cont = lv_obj_create(parent);
+lv_obj_set_height(cont, LV_SIZE_CONTENT);
+lv_obj_set_flex_grow(cont, 1);
 
+lv_obj_t * title_label = lv_label_create(cont);
+lv_label_set_text(title_label, title);
+lv_obj_add_style(title_label, &style_title, 0);
+
+lv_obj_t * meter = lv_meter_create(cont);
+lv_obj_remove_style(meter, NULL, LV_PART_MAIN);
+lv_obj_remove_style(meter, NULL, LV_PART_INDICATOR);
+lv_obj_set_width(meter, LV_PCT(100));
+
+lv_obj_t * bullet1 = lv_obj_create(cont);
+lv_obj_set_size(bullet1, 13, 13);
+lv_obj_remove_style(bullet1, NULL, LV_PART_SCROLLBAR);
+lv_obj_add_style(bullet1, &style_bullet, 0);
+lv_obj_set_style_bg_color(bullet1, lv_palette_main(LV_PALETTE_RED), 0);
+lv_obj_t * label1 = lv_label_create(cont);
+lv_label_set_text(label1, text1);
+
+lv_obj_t * bullet2 = lv_obj_create(cont);
+lv_obj_set_size(bullet2, 13, 13);
+lv_obj_remove_style(bullet2, NULL, LV_PART_SCROLLBAR);
+lv_obj_add_style(bullet2, &style_bullet, 0);
+lv_obj_set_style_bg_color(bullet2, lv_palette_main(LV_PALETTE_BLUE), 0);
+lv_obj_t * label2 = lv_label_create(cont);
+lv_label_set_text(label2, text2);
+
+lv_obj_t * bullet3 = lv_obj_create(cont);
+lv_obj_set_size(bullet3, 13, 13);
+lv_obj_remove_style(bullet3,  NULL, LV_PART_SCROLLBAR);
+lv_obj_add_style(bullet3, &style_bullet, 0);
+lv_obj_set_style_bg_color(bullet3, lv_palette_main(LV_PALETTE_GREEN), 0);
+lv_obj_t * label3 = lv_label_create(cont);
+lv_label_set_text(label3, text3);
+
+if(disp_size == DISP_MEDIUM) {
+static lv_coord_t grid_col_dsc[] = {LV_GRID_CONTENT, LV_GRID_FR(1), LV_GRID_CONTENT, LV_GRID_FR(8), LV_GRID_TEMPLATE_LAST};
+static lv_coord_t grid_row_dsc[] = {LV_GRID_CONTENT, LV_GRID_FR(1), LV_GRID_CONTENT, LV_GRID_CONTENT, LV_GRID_CONTENT, LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
+
+lv_obj_set_grid_dsc_array(cont, grid_col_dsc, grid_row_dsc);
+lv_obj_set_grid_cell(title_label, LV_GRID_ALIGN_START, 0, 4, LV_GRID_ALIGN_START, 0, 1);
+lv_obj_set_grid_cell(meter, LV_GRID_ALIGN_START, 0, 1, LV_GRID_ALIGN_START, 1, 3);
+lv_obj_set_grid_cell(bullet1, LV_GRID_ALIGN_START, 2, 1, LV_GRID_ALIGN_CENTER, 2, 1);
+lv_obj_set_grid_cell(bullet2, LV_GRID_ALIGN_START, 2, 1, LV_GRID_ALIGN_CENTER, 3, 1);
+lv_obj_set_grid_cell(bullet3, LV_GRID_ALIGN_START, 2, 1, LV_GRID_ALIGN_CENTER, 4, 1);
+lv_obj_set_grid_cell(label1, LV_GRID_ALIGN_STRETCH, 3, 1, LV_GRID_ALIGN_CENTER, 2, 1);
+lv_obj_set_grid_cell(label2, LV_GRID_ALIGN_STRETCH, 3, 1, LV_GRID_ALIGN_CENTER, 3, 1);
+lv_obj_set_grid_cell(label3, LV_GRID_ALIGN_STRETCH, 3, 1, LV_GRID_ALIGN_CENTER, 4, 1);
+}
+else {
+static lv_coord_t grid_col_dsc[] = {LV_GRID_CONTENT, LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
+static lv_coord_t grid_row_dsc[] = {LV_GRID_CONTENT, LV_GRID_CONTENT, LV_GRID_CONTENT, LV_GRID_CONTENT, LV_GRID_CONTENT, LV_GRID_TEMPLATE_LAST};
+lv_obj_set_grid_dsc_array(cont, grid_col_dsc, grid_row_dsc);
+lv_obj_set_grid_cell(title_label, LV_GRID_ALIGN_START, 0, 2, LV_GRID_ALIGN_START, 0, 1);
+lv_obj_set_grid_cell(meter, LV_GRID_ALIGN_START, 0, 2, LV_GRID_ALIGN_START, 1, 1);
+lv_obj_set_grid_cell(bullet1, LV_GRID_ALIGN_START, 0, 1, LV_GRID_ALIGN_START, 2, 1);
+lv_obj_set_grid_cell(bullet2, LV_GRID_ALIGN_START, 0, 1, LV_GRID_ALIGN_START, 3, 1);
+lv_obj_set_grid_cell(bullet3, LV_GRID_ALIGN_START, 0, 1, LV_GRID_ALIGN_START, 4, 1);
+lv_obj_set_grid_cell(label1, LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_START, 2, 1);
+lv_obj_set_grid_cell(label2, LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_START, 3, 1);
+lv_obj_set_grid_cell(label3, LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_START, 4, 1);
+}
+
+return meter;
+
+}
 
 void create_canvas()
 {
@@ -127,7 +297,7 @@ void create_canvas()
     lv_canvas_set_buffer(canvas, buf, LV_HOR_RES, LV_VER_RES, LV_IMG_CF_TRUE_COLOR);
 
     // Set a background color for the canvas
-    lv_canvas_fill_bg(canvas, lv_color_hex(0x078000), LV_OPA_COVER);
+    lv_canvas_fill_bg(canvas, lv_color_hex(0x078080), LV_OPA_COVER);
     
 }
 

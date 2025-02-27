@@ -35,8 +35,8 @@ static void analytics_create(lv_obj_t * parent);
 static void shop_create(lv_obj_t * parent);
 static void color_changer_create(lv_obj_t * parent);
 
-static lv_obj_t * create_meter_box(lv_obj_t * parent, const char * title, const char * text1, const char * text2,
-                                   const char * text3);
+
+
 static lv_obj_t * create_shop_item(lv_obj_t * parent, const void * img_src, const char * name, const char * category,
                                    const char * price);
 
