@@ -29,7 +29,7 @@ void app_main()
 
         ESP_LOGI("Main", "First LVGL function");
         create_canvas();
-        draw_rectangle_on_canvas(10, 5, 5);
+        //draw_rectangle_on_canvas(10, 5, 5);
         dash_create2();
 
     }

@@ -15,8 +15,10 @@ typedef enum {
 //static prototypes
 static lv_obj_t * create_meter_box(lv_obj_t * parent, const char * title, const char * text1, const char * text2,
     const char * text3);
+static void meter3_anim_cb(void * var, int32_t v);
 
 //statics
+static lv_obj_t * meter3;
 static lv_style_t style_bullet;
 static lv_obj_t * meter1;
 static disp_size_t disp_size;
@@ -134,13 +136,84 @@ void dash_create2(void)//(lv_obj_t * parent) //arc
     lv_obj_set_flex_flow(tablelabel, LV_FLEX_FLOW_ROW_WRAP);
     lv_meter_scale_t * scale;
     //lv_meter_t * meter1 = (lv_meter_t *)obj;
-    meter1 = create_meter_box(tablelabel, "RPM", "Revenue: 63%", "Sales: 44%", "Costs: 58%");
+    meter1 = create_meter_box(tablelabel, "RPM", "", "", "");
     lv_obj_add_flag(lv_obj_get_parent(meter1), LV_OBJ_FLAG_FLEX_IN_NEW_TRACK);
     scale = lv_meter_add_scale(meter1);
     lv_meter_set_scale_range(meter1, scale, 0, 100, 270, 90);
     lv_meter_set_scale_ticks(meter1, scale, 0, 0, 0, lv_color_black());
     lv_meter_indicator_t * indic;
+    lv_anim_t a;
     indic = lv_meter_add_arc(meter1, scale, 15, lv_palette_main(LV_PALETTE_BLUE), 0);
+    lv_anim_set_exec_cb(&a, meter3_anim_cb);
+    lv_anim_set_var(&a, indic);
+    lv_anim_set_time(&a, 4100);
+    lv_anim_set_playback_time(&a, 2700);
+    lv_anim_start(&a);
+
+    
+    
+    meter3 = create_meter_box(tablelabel, "Network Speed", "Low speed", "Normal Speed", "High Speed");
+    if(disp_size < DISP_LARGE) lv_obj_add_flag(lv_obj_get_parent(meter3), LV_OBJ_FLAG_FLEX_IN_NEW_TRACK);
+
+    /*Add a special circle to the needle's pivot*/
+    lv_obj_set_style_pad_hor(meter3, 10, 0);
+    lv_obj_set_style_size(meter3, 10, LV_PART_INDICATOR);
+    lv_obj_set_style_radius(meter3, LV_RADIUS_CIRCLE, LV_PART_INDICATOR);
+    lv_obj_set_style_bg_opa(meter3, LV_OPA_COVER, LV_PART_INDICATOR);
+    lv_obj_set_style_bg_color(meter3, lv_palette_darken(LV_PALETTE_GREY, 4), LV_PART_INDICATOR);
+    lv_obj_set_style_outline_color(meter3, lv_color_white(), LV_PART_INDICATOR);
+    lv_obj_set_style_outline_width(meter3, 3, LV_PART_INDICATOR);
+    lv_obj_set_style_text_color(meter3, lv_palette_darken(LV_PALETTE_GREY, 1), LV_PART_TICKS);
+
+    scale = lv_meter_add_scale(meter3);
+    lv_meter_set_scale_range(meter3, scale, 10, 60, 220, 360 - 220);
+    lv_meter_set_scale_ticks(meter3, scale, 21, 3, 17, lv_color_white());
+    lv_meter_set_scale_major_ticks(meter3, scale, 4, 4, 22, lv_color_white(), 15);
+
+    indic = lv_meter_add_arc(meter3, scale, 10, lv_palette_main(LV_PALETTE_RED), 0);
+    lv_meter_set_indicator_start_value(meter3, indic, 0);
+    lv_meter_set_indicator_end_value(meter3, indic, 20);
+
+    indic = lv_meter_add_scale_lines(meter3, scale, lv_palette_darken(LV_PALETTE_RED, 3), lv_palette_darken(LV_PALETTE_RED,
+                                                                                                            3), true, 0);
+    lv_meter_set_indicator_start_value(meter3, indic, 0);
+    lv_meter_set_indicator_end_value(meter3, indic, 20);
+
+    indic = lv_meter_add_arc(meter3, scale, 12, lv_palette_main(LV_PALETTE_BLUE), 0);
+    lv_meter_set_indicator_start_value(meter3, indic, 20);
+    lv_meter_set_indicator_end_value(meter3, indic, 40);
+
+    indic = lv_meter_add_scale_lines(meter3, scale, lv_palette_darken(LV_PALETTE_BLUE, 3),
+                                     lv_palette_darken(LV_PALETTE_BLUE, 3), true, 0);
+    lv_meter_set_indicator_start_value(meter3, indic, 20);
+    lv_meter_set_indicator_end_value(meter3, indic, 40);
+
+    indic = lv_meter_add_arc(meter3, scale, 10, lv_palette_main(LV_PALETTE_GREEN), 0);
+    lv_meter_set_indicator_start_value(meter3, indic, 40);
+    lv_meter_set_indicator_end_value(meter3, indic, 60);
+
+    indic = lv_meter_add_scale_lines(meter3, scale, lv_palette_darken(LV_PALETTE_GREEN, 3),
+                                     lv_palette_darken(LV_PALETTE_GREEN, 3), true, 0);
+    lv_meter_set_indicator_start_value(meter3, indic, 40);
+    lv_meter_set_indicator_end_value(meter3, indic, 60);
+
+    indic = lv_meter_add_needle_line(meter3, scale, 4, lv_palette_darken(LV_PALETTE_GREY, 4), -25);
+
+    lv_obj_t * mbps_label = lv_label_create(meter3);
+    lv_label_set_text(mbps_label, "-");
+    lv_obj_add_style(mbps_label, &style_title, 0);
+
+    lv_obj_t * mbps_unit_label = lv_label_create(meter3);
+    lv_label_set_text(mbps_unit_label, "RPM");
+    
+    lv_anim_init(&a);
+    lv_anim_set_values(&a, 10, 60);
+    lv_anim_set_repeat_count(&a, LV_ANIM_REPEAT_INFINITE);
+    lv_anim_set_exec_cb(&a, meter3_anim_cb);
+    lv_anim_set_var(&a, indic);
+    lv_anim_set_time(&a, 4100);
+    lv_anim_set_playback_time(&a, 800);
+    lv_anim_start(&a);
 }
 
 void draw_rectangle_on_canvas(int16_t x, int16_t y, uint16_t pressure)
@@ -279,9 +352,15 @@ lv_obj_set_grid_cell(label1, LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_START, 2
 lv_obj_set_grid_cell(label2, LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_START, 3, 1);
 lv_obj_set_grid_cell(label3, LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_START, 4, 1);
 }
-
 return meter;
+}
 
+static void meter3_anim_cb(void * var, int32_t v)
+{
+    lv_meter_set_indicator_value(meter3, var, v);
+
+    lv_obj_t * label = lv_obj_get_child(meter3, 0);
+    lv_label_set_text_fmt(label, "%"LV_PRId32, v);
 }
 
 void create_canvas()
