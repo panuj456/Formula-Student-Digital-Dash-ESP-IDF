@@ -7,8 +7,7 @@
 #include "waveshare_rgb_lcd_port.h"
 #include "test.h"
 #include "test.c"
-//#include "test2.h"
-//#include "test2.c"
+
 
 void app_main()
 {
@@ -23,13 +22,13 @@ void app_main()
         // lv_demo_benchmark();
         // lv_demo_music();
         //lv_demo_widgets();
+
         //example_lvgl_demo_ui();
         // Release the mutex
         lvgl_port_unlock();
 
         ESP_LOGI("Main", "First LVGL function");
-        create_canvas();
-        //draw_rectangle_on_canvas(10, 5, 5);
+        //create_canvas();
         dash_create2();
 
     }

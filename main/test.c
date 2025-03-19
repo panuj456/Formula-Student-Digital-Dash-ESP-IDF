@@ -16,9 +16,12 @@ typedef enum {
 static lv_obj_t * create_meter_box(lv_obj_t * parent, const char * title, const char * text1, const char * text2,
     const char * text3);
 static void meter3_anim_cb(void * var, int32_t v);
+static void meter1_anim_cb(void * var, int32_t v);
 
 //statics
 static lv_obj_t * meter3;
+static lv_obj_t * meter2;
+static lv_obj_t * meter1;
 static lv_style_t style_bullet;
 static lv_obj_t * meter1;
 static disp_size_t disp_size;
@@ -123,7 +126,7 @@ void dash_create2(void)//(lv_obj_t * parent) //arc
 
         lv_obj_t * label = lv_label_create(tab_btns);
         lv_obj_add_style(label, &style_title, 0);
-        lv_label_set_text(label, "LVGL v8");
+        lv_label_set_text(label, "BCU RACING");
         lv_obj_align_to(label, logo, LV_ALIGN_OUT_RIGHT_TOP, 10, 0);
 
         label = lv_label_create(tab_btns);
@@ -134,25 +137,91 @@ void dash_create2(void)//(lv_obj_t * parent) //arc
     lv_obj_t * tablelabel = lv_tabview_add_tab(tv, "Analytics");
 
     lv_obj_set_flex_flow(tablelabel, LV_FLEX_FLOW_ROW_WRAP);
-    lv_meter_scale_t * scale;
+    
+    //RPM
+    lv_meter_scale_t * scale2;
+    lv_meter_indicator_t * indic2;
+    lv_anim_t a2;
     //lv_meter_t * meter1 = (lv_meter_t *)obj;
     meter1 = create_meter_box(tablelabel, "RPM", "", "", "");
-    lv_obj_add_flag(lv_obj_get_parent(meter1), LV_OBJ_FLAG_FLEX_IN_NEW_TRACK);
-    scale = lv_meter_add_scale(meter1);
-    lv_meter_set_scale_range(meter1, scale, 0, 100, 270, 90);
-    lv_meter_set_scale_ticks(meter1, scale, 0, 0, 0, lv_color_black());
+    if(disp_size < DISP_LARGE) lv_obj_add_flag(lv_obj_get_parent(meter1), LV_OBJ_FLAG_FLEX_IN_NEW_TRACK);
+    /*Add a special circle to the needle's pivot*/
+    lv_obj_set_style_pad_hor(meter1, 10, 0);
+    lv_obj_set_style_size(meter1, 10, LV_PART_INDICATOR);
+    lv_obj_set_style_radius(meter1, LV_RADIUS_CIRCLE, LV_PART_INDICATOR);
+    lv_obj_set_style_bg_opa(meter1, LV_OPA_COVER, LV_PART_INDICATOR);
+    lv_obj_set_style_bg_color(meter1, lv_palette_darken(LV_PALETTE_GREY, 4), LV_PART_INDICATOR);
+    lv_obj_set_style_outline_color(meter1, lv_color_white(), LV_PART_INDICATOR);
+    lv_obj_set_style_outline_width(meter1, 3, LV_PART_INDICATOR);
+    lv_obj_set_style_text_color(meter1, lv_palette_darken(LV_PALETTE_GREY, 1), LV_PART_TICKS);
+
+    scale2 = lv_meter_add_scale(meter1);
+    lv_meter_set_scale_range(meter1, scale2, 10, 60, 220, 360 - 220);
+    lv_meter_set_scale_ticks(meter1, scale2, 21, 3, 17, lv_color_white());
+    lv_meter_set_scale_major_ticks(meter1, scale2, 4, 4, 22, lv_color_white(), 15);
+
+    indic2 = lv_meter_add_arc(meter1, scale2, 10, lv_palette_main(LV_PALETTE_LIGHT_BLUE), 0);
+    lv_meter_set_indicator_start_value(meter1, indic2, 0);
+    lv_meter_set_indicator_end_value(meter1, indic2, 20);
+
+    indic2 = lv_meter_add_scale_lines(meter1, scale2, lv_palette_darken(LV_PALETTE_LIGHT_BLUE, 3), lv_palette_darken(LV_PALETTE_LIGHT_BLUE,
+                                                                                                            3), true, 0);
+    lv_meter_set_indicator_start_value(meter1, indic2, 0);
+    lv_meter_set_indicator_end_value(meter1, indic2, 20);
+
+    indic2 = lv_meter_add_arc(meter1, scale2, 12, lv_palette_main(LV_PALETTE_BLUE), 0);
+    lv_meter_set_indicator_start_value(meter1, indic2, 20);
+    lv_meter_set_indicator_end_value(meter1, indic2, 40);
+
+    indic2 = lv_meter_add_scale_lines(meter1, scale2, lv_palette_darken(LV_PALETTE_BLUE, 3),
+                                     lv_palette_darken(LV_PALETTE_BLUE, 3), true, 0);
+    lv_meter_set_indicator_start_value(meter1, indic2, 20);
+    lv_meter_set_indicator_end_value(meter1, indic2, 40);
+
+    indic2 = lv_meter_add_arc(meter1, scale2, 10, lv_palette_main(LV_PALETTE_GREEN), 0);
+    lv_meter_set_indicator_start_value(meter1, indic2, 40);
+    lv_meter_set_indicator_end_value(meter1, indic2, 60);
+
+    indic2 = lv_meter_add_scale_lines(meter1, scale2, lv_palette_darken(LV_PALETTE_GREEN, 3),
+                                     lv_palette_darken(LV_PALETTE_GREEN, 3), true, 0);
+    lv_meter_set_indicator_start_value(meter1, indic2, 40);
+    lv_meter_set_indicator_end_value(meter1, indic2, 60);
+
+    indic2 = lv_meter_add_arc(meter1, scale2, 10, lv_palette_main(LV_PALETTE_RED), 0);
+    lv_meter_set_indicator_start_value(meter1, indic2, 60);
+    lv_meter_set_indicator_end_value(meter1, indic2, 80);
+
+    indic2 = lv_meter_add_scale_lines(meter1, scale2, lv_palette_darken(LV_PALETTE_RED, 3),
+                                     lv_palette_darken(LV_PALETTE_RED, 3), true, 0);
+    lv_meter_set_indicator_start_value(meter1, indic2, 60);
+    lv_meter_set_indicator_end_value(meter1, indic2, 80);
+
+    indic2 = lv_meter_add_needle_line(meter1, scale2, 4, lv_palette_darken(LV_PALETTE_GREY, 4), -25);
+    
+    lv_obj_t * mbps_label2 = lv_label_create(meter1);
+    lv_label_set_text(mbps_label2, "-");
+    lv_obj_add_style(mbps_label2, &style_title, 0);
+
+    lv_obj_t * mbps_unit_label2 = lv_label_create(meter3);
+    lv_label_set_text(mbps_unit_label2, "RPM");
+    
+    lv_anim_init(&a2);
+    lv_anim_set_values(&a2, 10, 80);
+    lv_anim_set_repeat_count(&a2, LV_ANIM_REPEAT_INFINITE);
+    lv_anim_set_exec_cb(&a2, meter1_anim_cb);
+    lv_anim_set_var(&a2, indic2);
+    lv_anim_set_time(&a2, 4100);
+    lv_anim_set_playback_time(&a2, 800);
+    lv_anim_start(&a2);
+
+    //gear screen here pls
+    meter2 = create_meter_box(tablelabel, "GEAR", "", "", "");
+    
+    //Vehicle Speed
+    meter3 = create_meter_box(tablelabel, "KM/H", "", "", "");
+    lv_meter_scale_t * scale;
     lv_meter_indicator_t * indic;
     lv_anim_t a;
-    indic = lv_meter_add_arc(meter1, scale, 15, lv_palette_main(LV_PALETTE_BLUE), 0);
-    lv_anim_set_exec_cb(&a, meter3_anim_cb);
-    lv_anim_set_var(&a, indic);
-    lv_anim_set_time(&a, 4100);
-    lv_anim_set_playback_time(&a, 2700);
-    lv_anim_start(&a);
-
-    
-    
-    meter3 = create_meter_box(tablelabel, "Network Speed", "Low speed", "Normal Speed", "High Speed");
     if(disp_size < DISP_LARGE) lv_obj_add_flag(lv_obj_get_parent(meter3), LV_OBJ_FLAG_FLEX_IN_NEW_TRACK);
 
     /*Add a special circle to the needle's pivot*/
@@ -204,7 +273,7 @@ void dash_create2(void)//(lv_obj_t * parent) //arc
     lv_obj_add_style(mbps_label, &style_title, 0);
 
     lv_obj_t * mbps_unit_label = lv_label_create(meter3);
-    lv_label_set_text(mbps_unit_label, "RPM");
+    lv_label_set_text(mbps_unit_label, "");
     
     lv_anim_init(&a);
     lv_anim_set_values(&a, 10, 60);
@@ -216,74 +285,6 @@ void dash_create2(void)//(lv_obj_t * parent) //arc
     lv_anim_start(&a);
 }
 
-void draw_rectangle_on_canvas(int16_t x, int16_t y, uint16_t pressure)
-{
-    // Get the current time
-    uint32_t current_time = lv_tick_get();
-
-    // Calculate the time elapsed since the last touch
-    uint32_t time_elapsed = current_time - last_touch_time;
-
-    // If the time elapsed is greater than the timeout, consider it a new line
-    if (time_elapsed > TOUCH_TIMEOUT_MS) {
-        prev_x = -1;
-        prev_y = -1;
-    }
-
-    // Define the minimum and maximum sizes of the rectangle
-    uint16_t min_rect_size = 5;   // Adjust this value for the minimum size
-    uint16_t max_rect_size = 1000;  // Adjust this value for the maximum size
-
-    // Calculate the scaling factor based on pressure
-    float scale = ((float)pressure / 320000.0) * (max_rect_size - min_rect_size);
-
-    // Calculate the size of the rectangle based on pressure and the range of sizes
-    uint16_t rect_size = min_rect_size + (uint16_t)scale;
-
-    // Calculate the position of the rectangle based on touch coordinates
-    int16_t rect_x = x - rect_size / 2;
-    int16_t rect_y = y - rect_size / 2;
-
-    // Get the rainbow color based on the current time
-    lv_color_t rainbow_color = get_rainbow_color(current_time);
-
-    // If there is a previous point, interpolate between them
-    if (prev_x != -1 && prev_y != -1) {
-        int16_t dx = x - prev_x;
-        int16_t dy = y - prev_y;
-        int16_t steps = MAX(abs(dx), abs(dy)); // Number of steps to interpolate
-
-        // Interpolate between the points and draw rectangles with rainbow color
-        for (int i = 0; i < steps; i++) {
-            float t = (float)i / (float)steps;
-            int16_t interp_x = prev_x + (int16_t)(dx * t);
-            int16_t interp_y = prev_y + (int16_t)(dy * t);
-            
-            lv_draw_rect_dsc_t rect_dsc;
-            lv_draw_rect_dsc_init(&rect_dsc);
-            rect_dsc.radius = 81;
-            rect_dsc.bg_opa = LV_OPA_COVER;
-            rect_dsc.bg_color = rainbow_color;
-            lv_canvas_draw_rect(canvas, interp_x - rect_size / 2, interp_y - rect_size / 2, rect_size, rect_size, &rect_dsc);
-        }
-    }
-
-    // Draw the final rectangle at the current touch point with rainbow color
-    lv_draw_rect_dsc_t rect_dsc;
-    lv_draw_rect_dsc_init(&rect_dsc);
-    rect_dsc.radius = 81;
-    rect_dsc.bg_opa = LV_OPA_COVER;
-    rect_dsc.bg_color = rainbow_color;
-    lv_canvas_draw_rect(canvas, rect_x, rect_y, rect_size, rect_size, &rect_dsc);
-
-    // Refresh the canvas to show the drawn rectangle
-    lv_obj_invalidate(canvas);
-
-    // Update the previous point and last touch time
-    prev_x = x;
-    prev_y = y;
-    last_touch_time = current_time;
-}
 
 static lv_obj_t * create_meter_box(lv_obj_t * parent, const char * title, const char * text1, const char * text2,
     const char * text3)
@@ -353,6 +354,14 @@ lv_obj_set_grid_cell(label2, LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_START, 3
 lv_obj_set_grid_cell(label3, LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_START, 4, 1);
 }
 return meter;
+}
+
+static void meter1_anim_cb(void * var, int32_t v)
+{
+    lv_meter_set_indicator_value(meter1, var, v);
+
+    lv_obj_t * label = lv_obj_get_child(meter1, 0);
+    lv_label_set_text_fmt(label, "%"LV_PRId32, v);
 }
 
 static void meter3_anim_cb(void * var, int32_t v)

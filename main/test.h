@@ -9,7 +9,6 @@ extern lv_obj_t *canvas;
 extern lv_obj_t * obj;
 
 void dash_create2();
-void draw_rectangle_on_canvas(int16_t x, int16_t y, uint16_t pressure);
 void create_canvas();
 
 
