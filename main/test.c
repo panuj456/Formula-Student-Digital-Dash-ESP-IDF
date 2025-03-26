@@ -134,9 +134,13 @@ void dash_create2(void)//(lv_obj_t * parent) //arc
         lv_obj_add_style(label, &style_text_muted, 0);
         lv_obj_align_to(label, logo, LV_ALIGN_OUT_RIGHT_BOTTOM, 10, 0);
     }
-    lv_obj_t * tablelabel = lv_tabview_add_tab(tv, "Analytics");
+    lv_obj_t * tablelabel = lv_tabview_add_tab(tv, "DRIVER");
 
     lv_obj_set_flex_flow(tablelabel, LV_FLEX_FLOW_ROW_WRAP);
+
+    lv_obj_t * tablelabel2 = lv_tabview_add_tab(tv, "PERIPHERAL");
+
+    lv_obj_set_flex_flow(tablelabel2, LV_FLEX_FLOW_ROW_WRAP);
     
     //RPM
     lv_meter_scale_t * scale2;
@@ -302,29 +306,7 @@ lv_obj_remove_style(meter, NULL, LV_PART_MAIN);
 lv_obj_remove_style(meter, NULL, LV_PART_INDICATOR);
 lv_obj_set_width(meter, LV_PCT(100));
 
-lv_obj_t * bullet1 = lv_obj_create(cont);
-lv_obj_set_size(bullet1, 13, 13);
-lv_obj_remove_style(bullet1, NULL, LV_PART_SCROLLBAR);
-lv_obj_add_style(bullet1, &style_bullet, 0);
-lv_obj_set_style_bg_color(bullet1, lv_palette_main(LV_PALETTE_RED), 0);
-lv_obj_t * label1 = lv_label_create(cont);
-lv_label_set_text(label1, text1);
 
-lv_obj_t * bullet2 = lv_obj_create(cont);
-lv_obj_set_size(bullet2, 13, 13);
-lv_obj_remove_style(bullet2, NULL, LV_PART_SCROLLBAR);
-lv_obj_add_style(bullet2, &style_bullet, 0);
-lv_obj_set_style_bg_color(bullet2, lv_palette_main(LV_PALETTE_BLUE), 0);
-lv_obj_t * label2 = lv_label_create(cont);
-lv_label_set_text(label2, text2);
-
-lv_obj_t * bullet3 = lv_obj_create(cont);
-lv_obj_set_size(bullet3, 13, 13);
-lv_obj_remove_style(bullet3,  NULL, LV_PART_SCROLLBAR);
-lv_obj_add_style(bullet3, &style_bullet, 0);
-lv_obj_set_style_bg_color(bullet3, lv_palette_main(LV_PALETTE_GREEN), 0);
-lv_obj_t * label3 = lv_label_create(cont);
-lv_label_set_text(label3, text3);
 
 if(disp_size == DISP_MEDIUM) {
 static lv_coord_t grid_col_dsc[] = {LV_GRID_CONTENT, LV_GRID_FR(1), LV_GRID_CONTENT, LV_GRID_FR(8), LV_GRID_TEMPLATE_LAST};
@@ -333,12 +315,6 @@ static lv_coord_t grid_row_dsc[] = {LV_GRID_CONTENT, LV_GRID_FR(1), LV_GRID_CONT
 lv_obj_set_grid_dsc_array(cont, grid_col_dsc, grid_row_dsc);
 lv_obj_set_grid_cell(title_label, LV_GRID_ALIGN_START, 0, 4, LV_GRID_ALIGN_START, 0, 1);
 lv_obj_set_grid_cell(meter, LV_GRID_ALIGN_START, 0, 1, LV_GRID_ALIGN_START, 1, 3);
-lv_obj_set_grid_cell(bullet1, LV_GRID_ALIGN_START, 2, 1, LV_GRID_ALIGN_CENTER, 2, 1);
-lv_obj_set_grid_cell(bullet2, LV_GRID_ALIGN_START, 2, 1, LV_GRID_ALIGN_CENTER, 3, 1);
-lv_obj_set_grid_cell(bullet3, LV_GRID_ALIGN_START, 2, 1, LV_GRID_ALIGN_CENTER, 4, 1);
-lv_obj_set_grid_cell(label1, LV_GRID_ALIGN_STRETCH, 3, 1, LV_GRID_ALIGN_CENTER, 2, 1);
-lv_obj_set_grid_cell(label2, LV_GRID_ALIGN_STRETCH, 3, 1, LV_GRID_ALIGN_CENTER, 3, 1);
-lv_obj_set_grid_cell(label3, LV_GRID_ALIGN_STRETCH, 3, 1, LV_GRID_ALIGN_CENTER, 4, 1);
 }
 else {
 static lv_coord_t grid_col_dsc[] = {LV_GRID_CONTENT, LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
@@ -346,12 +322,7 @@ static lv_coord_t grid_row_dsc[] = {LV_GRID_CONTENT, LV_GRID_CONTENT, LV_GRID_CO
 lv_obj_set_grid_dsc_array(cont, grid_col_dsc, grid_row_dsc);
 lv_obj_set_grid_cell(title_label, LV_GRID_ALIGN_START, 0, 2, LV_GRID_ALIGN_START, 0, 1);
 lv_obj_set_grid_cell(meter, LV_GRID_ALIGN_START, 0, 2, LV_GRID_ALIGN_START, 1, 1);
-lv_obj_set_grid_cell(bullet1, LV_GRID_ALIGN_START, 0, 1, LV_GRID_ALIGN_START, 2, 1);
-lv_obj_set_grid_cell(bullet2, LV_GRID_ALIGN_START, 0, 1, LV_GRID_ALIGN_START, 3, 1);
-lv_obj_set_grid_cell(bullet3, LV_GRID_ALIGN_START, 0, 1, LV_GRID_ALIGN_START, 4, 1);
-lv_obj_set_grid_cell(label1, LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_START, 2, 1);
-lv_obj_set_grid_cell(label2, LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_START, 3, 1);
-lv_obj_set_grid_cell(label3, LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_START, 4, 1);
+
 }
 return meter;
 }
@@ -361,6 +332,14 @@ static void meter1_anim_cb(void * var, int32_t v)
     lv_meter_set_indicator_value(meter1, var, v);
 
     lv_obj_t * label = lv_obj_get_child(meter1, 0);
+    lv_label_set_text_fmt(label, "%"LV_PRId32, v);
+}
+
+static void meter2_anim_cb(void * var, int32_t v)
+{
+    //lv_meter_set_indicator_value(meter2, var, v);
+
+    lv_obj_t * label = lv_obj_get_child(meter2, 0);
     lv_label_set_text_fmt(label, "%"LV_PRId32, v);
 }
 
