@@ -25,5 +25,3 @@ tests/report/
 .DS_Store
 .vscode
 *.bak
-test2.c
-test2.h
