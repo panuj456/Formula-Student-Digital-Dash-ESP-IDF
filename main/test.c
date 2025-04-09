@@ -17,6 +17,7 @@ static lv_obj_t * create_meter_box(lv_obj_t * parent, const char * title, const 
     const char * text3);
 static void meter3_anim_cb(void * var, int32_t v);
 static void meter1_anim_cb(void * var, int32_t v);
+static void meter1_update(void * var, int32_t v);
 
 //statics
 static lv_obj_t * meter3;
@@ -150,8 +151,8 @@ void dash_create2(void)//(lv_obj_t * parent) //arc
     meter1 = create_meter_box(tablelabel, "RPM", "", "", "");
     if(disp_size < DISP_LARGE) lv_obj_add_flag(lv_obj_get_parent(meter1), LV_OBJ_FLAG_FLEX_IN_NEW_TRACK);
     /*Add a special circle to the needle's pivot*/
-    lv_obj_set_style_pad_hor(meter1, 10, 0);
-    lv_obj_set_style_size(meter1, 10, LV_PART_INDICATOR);
+    lv_obj_set_style_pad_hor(meter1, 30, 0);
+    lv_obj_set_style_size(meter1, 20, LV_PART_INDICATOR);
     lv_obj_set_style_radius(meter1, LV_RADIUS_CIRCLE, LV_PART_INDICATOR);
     lv_obj_set_style_bg_opa(meter1, LV_OPA_COVER, LV_PART_INDICATOR);
     lv_obj_set_style_bg_color(meter1, lv_palette_darken(LV_PALETTE_GREY, 4), LV_PART_INDICATOR);
@@ -160,7 +161,7 @@ void dash_create2(void)//(lv_obj_t * parent) //arc
     lv_obj_set_style_text_color(meter1, lv_palette_darken(LV_PALETTE_GREY, 1), LV_PART_TICKS);
 
     scale2 = lv_meter_add_scale(meter1);
-    lv_meter_set_scale_range(meter1, scale2, 10, 60, 220, 360 - 220);
+    lv_meter_set_scale_range(meter1, scale2, 10, 80, 220, 360 - 220); //60
     lv_meter_set_scale_ticks(meter1, scale2, 21, 3, 17, lv_color_white());
     lv_meter_set_scale_major_ticks(meter1, scale2, 4, 4, 22, lv_color_white(), 15);
 
@@ -229,8 +230,8 @@ void dash_create2(void)//(lv_obj_t * parent) //arc
     if(disp_size < DISP_LARGE) lv_obj_add_flag(lv_obj_get_parent(meter3), LV_OBJ_FLAG_FLEX_IN_NEW_TRACK);
 
     /*Add a special circle to the needle's pivot*/
-    lv_obj_set_style_pad_hor(meter3, 10, 0);
-    lv_obj_set_style_size(meter3, 10, LV_PART_INDICATOR);
+    lv_obj_set_style_pad_hor(meter3, 30, 0);
+    lv_obj_set_style_size(meter3, 20, LV_PART_INDICATOR);
     lv_obj_set_style_radius(meter3, LV_RADIUS_CIRCLE, LV_PART_INDICATOR);
     lv_obj_set_style_bg_opa(meter3, LV_OPA_COVER, LV_PART_INDICATOR);
     lv_obj_set_style_bg_color(meter3, lv_palette_darken(LV_PALETTE_GREY, 4), LV_PART_INDICATOR);
@@ -239,7 +240,7 @@ void dash_create2(void)//(lv_obj_t * parent) //arc
     lv_obj_set_style_text_color(meter3, lv_palette_darken(LV_PALETTE_GREY, 1), LV_PART_TICKS);
 
     scale = lv_meter_add_scale(meter3);
-    lv_meter_set_scale_range(meter3, scale, 10, 60, 220, 360 - 220);
+    lv_meter_set_scale_range(meter3, scale, 10, 80, 220, 360 - 220); //60
     lv_meter_set_scale_ticks(meter3, scale, 21, 3, 17, lv_color_white());
     lv_meter_set_scale_major_ticks(meter3, scale, 4, 4, 22, lv_color_white(), 15);
 
@@ -344,6 +345,14 @@ static void meter2_anim_cb(void * var, int32_t v)
 }
 
 static void meter3_anim_cb(void * var, int32_t v)
+{
+    lv_meter_set_indicator_value(meter3, var, v);
+
+    lv_obj_t * label = lv_obj_get_child(meter3, 0);
+    lv_label_set_text_fmt(label, "%"LV_PRId32, v);
+}
+
+static void meter1_update(void * var, int32_t v)
 {
     lv_meter_set_indicator_value(meter3, var, v);
 
