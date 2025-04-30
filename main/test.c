@@ -341,6 +341,9 @@ void dash_create2(void) //(lv_obj_t * parent) //arc
 
     //listen and update function called here
     meter3_update(indic, 70); //without animation, updates value with new value
+    //lv_meter_set_indicator_value(meter1, indic2, 70);
+    lv_label_set_text(meter2_gear_label, "5");
+    //lv_meter_set_indicator_value(meter1, indic2, 80);
 }
 
 static lv_obj_t *create_meter_box(lv_obj_t *parent, const char *title, const char *text1, const char *text2,
@@ -510,8 +513,5 @@ void create_canvas()
 
     // Set a background color for the canvas
     lv_canvas_fill_bg(canvas, lv_color_hex(0x078080), LV_OPA_COVER);
-    lv_meter_set_indicator_value(meter1, indic2, 70);
-    lv_label_set_text(meter2, "5");
-    lv_meter_set_indicator_value(meter1, indic2, 80);
     
 }
