@@ -20,9 +20,14 @@ static lv_obj_t *create_meter_box_peripheral(lv_obj_t *parent, const char *title
                                              const char *text3);
 static lv_obj_t *create_meter_box_GEAR(lv_obj_t *parent, const char *title, const char *text1, const char *text2,
                                        const char *text3);
+lv_meter_scale_t *scale;
+lv_meter_indicator_t *indic;
+lv_meter_scale_t *scale2;
+lv_meter_indicator_t *indic2;
+
 static void meter3_anim_cb(void *var, int32_t v);
 static void meter1_anim_cb(void *var, int32_t v);
-static void meter1_update(void *var, int32_t v);
+static void meter3_update(void *var, int32_t v);
 
 // statics
 static lv_obj_t *meter4;
@@ -159,8 +164,7 @@ void dash_create2(void) //(lv_obj_t * parent) //arc
     // Page 1
 
     // RPM
-    lv_meter_scale_t *scale2;
-    lv_meter_indicator_t *indic2;
+    
     lv_anim_t a2;
     // lv_meter_t * meter1 = (lv_meter_t *)obj;
     meter1 = create_meter_box(tablelabel, "RPM (x100)", "", "", "");
@@ -236,6 +240,7 @@ void dash_create2(void) //(lv_obj_t * parent) //arc
 
     lv_anim_init(&a2);
     lv_anim_set_values(&a2, 10, 80);
+    //lv_anim_set_get_value_cb()
     lv_anim_set_repeat_count(&a2, LV_ANIM_REPEAT_INFINITE);
     lv_anim_set_exec_cb(&a2, meter1_anim_cb);
     lv_anim_set_var(&a2, indic2);
@@ -256,9 +261,7 @@ void dash_create2(void) //(lv_obj_t * parent) //arc
 
     // Vehicle Speed
     meter3 = create_meter_box(tablelabel, "KM/H", "", "", "");
-    lv_meter_scale_t *scale;
-    lv_meter_indicator_t *indic;
-    lv_anim_t a;
+        lv_anim_t a;
     if (disp_size < DISP_LARGE)
         lv_obj_add_flag(lv_obj_get_parent(meter3), LV_OBJ_FLAG_FLEX_IN_NEW_TRACK);
 
@@ -320,7 +323,7 @@ void dash_create2(void) //(lv_obj_t * parent) //arc
 
     lv_obj_t *mbps_unit_label = lv_label_create(meter3);
     lv_label_set_text(mbps_unit_label, "");
-
+    /*
     lv_anim_init(&a);
     lv_anim_set_values(&a, 10, 60);
     lv_anim_set_repeat_count(&a, LV_ANIM_REPEAT_INFINITE);
@@ -329,11 +332,15 @@ void dash_create2(void) //(lv_obj_t * parent) //arc
     lv_anim_set_time(&a, 4100);
     lv_anim_set_playback_time(&a, 800);
     lv_anim_start(&a);
+    */
 
     // Page 2
 
     meter4 = create_meter_box_peripheral(tablelabel2, "Coolant Temp", "", "", "");
     // lv_meter_l
+
+    //listen and update function called here
+    meter3_update(indic, 70); //without animation, updates value with new value
 }
 
 static lv_obj_t *create_meter_box(lv_obj_t *parent, const char *title, const char *text1, const char *text2,
@@ -474,13 +481,20 @@ static void meter3_anim_cb(void *var, int32_t v)
     lv_label_set_text_fmt(label, "%" LV_PRId32, v);
 }
 
-static void meter1_update(void *var, int32_t v)
+static void meter3_update(void *var, int32_t v)
 {
     lv_meter_set_indicator_value(meter3, var, v);
 
     lv_obj_t *label = lv_obj_get_child(meter3, 0);
     lv_label_set_text_fmt(label, "%" LV_PRId32, v);
 }
+
+/*
+void listen
+*/
+/*
+void update
+*/
 
 void create_canvas()
 {
@@ -496,35 +510,8 @@ void create_canvas()
 
     // Set a background color for the canvas
     lv_canvas_fill_bg(canvas, lv_color_hex(0x078080), LV_OPA_COVER);
+    lv_meter_set_indicator_value(meter1, indic2, 70);
+    lv_label_set_text(meter2, "5");
+    lv_meter_set_indicator_value(meter1, indic2, 80);
+    
 }
-
-/*
-// This demo UI is adapted from LVGL official example: https://docs.lvgl.io/master/examples.html#scatter-chart
-void example_lvgl_demo_ui() // LVGL demo UI initialization function
-{
-    lv_obj_t *scr = lv_scr_act();                                              // Get the current active screen
-    lv_obj_t *chart = lv_chart_create(scr);                                    // Create a chart object
-    lv_obj_set_size(chart, 200, 150);                                          // Set chart size
-    lv_obj_align(chart, LV_ALIGN_CENTER, 0, 0);                                // Center the chart on the screen
-    lv_obj_add_event_cb(chart, draw_event_cb, LV_EVENT_DRAW_PART_BEGIN, NULL); // Add draw event callback
-    lv_obj_set_style_line_width(chart, 0, LV_PART_ITEMS);                      // Remove chart lines
-
-    lv_chart_set_type(chart, LV_CHART_TYPE_SCATTER); // Set chart type to scatter
-
-    lv_chart_set_axis_tick(chart, LV_CHART_AXIS_PRIMARY_X, 5, 5, 5, 1, true, 30);  // Set X-axis ticks
-    lv_chart_set_axis_tick(chart, LV_CHART_AXIS_PRIMARY_Y, 10, 5, 6, 5, true, 50); // Set Y-axis ticks
-
-    lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_X, 0, 200);  // Set X-axis range
-    lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, 0, 1000); // Set Y-axis range
-
-    lv_chart_set_point_count(chart, 50); // Set the number of points in the chart
-
-    lv_chart_series_t *ser = lv_chart_add_series(chart, lv_palette_main(LV_PALETTE_RED), LV_CHART_AXIS_PRIMARY_Y); // Add a series to the chart
-    for (int i = 0; i < 50; i++)
-    {                                                                            // Add random points to the chart
-        lv_chart_set_next_value2(chart, ser, lv_rand(0, 200), lv_rand(0, 1000)); // Set X and Y values
-    }
-
-    lv_timer_create(add_data, 100, chart); // Create a timer to add new data every 100ms
-}
-*/
