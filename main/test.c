@@ -488,6 +488,13 @@ void create_canvas()
     
 }
 
+// uint8_t readed_value = 0;
+
+// if(xQueueReceive(xECU, &readed_value , 50 / portTICK_PERIOD_MS ))
+// { 
+//     ESP_LOGD(TWAI_TAG, "Received %s from ECU",readed_value);
+// }
+
 /*
 // This demo UI is adapted from LVGL official example: https://docs.lvgl.io/master/examples.html#scatter-chart
 void example_lvgl_demo_ui() // LVGL demo UI initialization function 

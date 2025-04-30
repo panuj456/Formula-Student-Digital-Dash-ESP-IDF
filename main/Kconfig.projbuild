@@ -1,4 +1,4 @@
-menu "Example Configuration"
+menu "GUI Configuration"
     menu "Touch Controller"
         config EXAMPLE_LCD_TOUCH_CONTROLLER_GT911
             bool "Enable LCD GT911 Touch"
@@ -122,3 +122,28 @@ menu "Example Configuration"
                 Height of LVGL buffer. The width of the buffer is the same as that of the LCD.
     endmenu
 endmenu
+
+menu "ECU Configuration"
+
+    orsource "$IDF_PATH/examples/common_components/env_caps/$IDF_TARGET/Kconfig.env_caps"
+
+    config EXAMPLE_TX_GPIO_NUM
+        int "TX GPIO number"
+        range ENV_GPIO_RANGE_MIN ENV_GPIO_OUT_RANGE_MAX
+        default 21 if IDF_TARGET_ESP32
+        default 0
+        help
+            This option selects the GPIO pin used for the TX signal. Connect the
+            TX signal to your transceiver.
+
+    config EXAMPLE_RX_GPIO_NUM
+        int "RX GPIO number"
+        range ENV_GPIO_RANGE_MIN ENV_GPIO_IN_RANGE_MAX
+        default 22 if IDF_TARGET_ESP32
+        default 2
+        help
+            This option selects the GPIO pin used for the RX signal. Connect the
+            RX signal to your transceiver.
+
+endmenu
+
