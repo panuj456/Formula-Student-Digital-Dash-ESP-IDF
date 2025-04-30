@@ -15,6 +15,8 @@ typedef enum {
 //static prototypes
 static lv_obj_t * create_meter_box(lv_obj_t * parent, const char * title, const char * text1, const char * text2,
     const char * text3);
+    static lv_obj_t * create_meter_box_peripheral(lv_obj_t * parent, const char * title, const char * text1, const char * text2,
+        const char * text3);
 static lv_obj_t * create_meter_box_GEAR(lv_obj_t * parent, const char * title, const char * text1, const char * text2,
     const char * text3);
 static void meter3_anim_cb(void * var, int32_t v);
@@ -22,6 +24,7 @@ static void meter1_anim_cb(void * var, int32_t v);
 static void meter1_update(void * var, int32_t v);
 
 //statics
+static lv_obj_t * meter4;
 static lv_obj_t * meter3;
 static lv_obj_t * meter2;
 static lv_obj_t * meter1;
@@ -145,6 +148,8 @@ void dash_create2(void)//(lv_obj_t * parent) //arc
 
     lv_obj_set_flex_flow(tablelabel2, LV_FLEX_FLOW_ROW_WRAP);
     
+    // Page 1
+
     //RPM
     lv_meter_scale_t * scale2;
     lv_meter_indicator_t * indic2;
@@ -231,10 +236,16 @@ void dash_create2(void)//(lv_obj_t * parent) //arc
     lv_anim_start(&a2);
 
     //Gear Screen
+    static lv_style_t st;
+    lv_style_init(&st);
+    //lv_style_set_text_font(&st, LV_STATE_DEFAULT, &arial70px);
     meter2 = create_meter_box_GEAR(tablelabel, "GEAR", "", "", "");
     lv_obj_t * meter2_gear_label = lv_label_create(meter2);
-    //lv_obj_set_style_text_align(meter2_gear_label, LV_ALIGN_CENTER);
     lv_label_set_text(meter2_gear_label,"0");
+    //meter2_gear_label->set_style_text_align(meter2_gear_label->TEXT_ALIGN.CENTER,0);
+    //lv_obj_set_style_text_font(meter2_gear_label, &arial70px, "0");
+    //lv_obj_add_style(meter2_gear_label, LV_PART_MAIN, &st);
+    
     
     //Vehicle Speed
     meter3 = create_meter_box(tablelabel, "KM/H", "", "", "");
@@ -254,7 +265,7 @@ void dash_create2(void)//(lv_obj_t * parent) //arc
     lv_obj_set_style_text_color(meter3, lv_palette_darken(LV_PALETTE_GREY, 1), LV_PART_TICKS);
 
     scale = lv_meter_add_scale(meter3);
-    lv_meter_set_scale_range(meter3, scale, 10, 80, 220, 360 - 220); //60
+    lv_meter_set_scale_range(meter3, scale, 0, 80, 220, 360 - 220); //60
     lv_meter_set_scale_ticks(meter3, scale, 21, 3, 17, lv_color_white());
     lv_meter_set_scale_major_ticks(meter3, scale, 4, 4, 22, lv_color_white(), 15);
 
@@ -267,25 +278,25 @@ void dash_create2(void)//(lv_obj_t * parent) //arc
     lv_meter_set_indicator_start_value(meter3, indic, 0);
     lv_meter_set_indicator_end_value(meter3, indic, 20);
 
-    indic = lv_meter_add_arc(meter3, scale, 12, lv_palette_main(LV_PALETTE_BLUE), 0);
+    indic = lv_meter_add_arc(meter3, scale, 12, lv_palette_main(LV_PALETTE_RED), 0);
     lv_meter_set_indicator_start_value(meter3, indic, 20);
     lv_meter_set_indicator_end_value(meter3, indic, 40);
 
-    indic = lv_meter_add_scale_lines(meter3, scale, lv_palette_darken(LV_PALETTE_BLUE, 3),
-                                     lv_palette_darken(LV_PALETTE_BLUE, 3), true, 0);
+    indic = lv_meter_add_scale_lines(meter3, scale, lv_palette_darken(LV_PALETTE_RED, 3),
+                                     lv_palette_darken(LV_PALETTE_RED, 3), true, 0);
     lv_meter_set_indicator_start_value(meter3, indic, 20);
     lv_meter_set_indicator_end_value(meter3, indic, 40);
 
-    indic = lv_meter_add_arc(meter3, scale, 10, lv_palette_main(LV_PALETTE_GREEN), 0);
+    indic = lv_meter_add_arc(meter3, scale, 10, lv_palette_main(LV_PALETTE_RED), 0);
     lv_meter_set_indicator_start_value(meter3, indic, 40);
     lv_meter_set_indicator_end_value(meter3, indic, 60);
 
-    indic = lv_meter_add_scale_lines(meter3, scale, lv_palette_darken(LV_PALETTE_GREEN, 3),
-                                     lv_palette_darken(LV_PALETTE_GREEN, 3), true, 0);
+    indic = lv_meter_add_scale_lines(meter3, scale, lv_palette_darken(LV_PALETTE_RED, 3),
+                                     lv_palette_darken(LV_PALETTE_RED, 3), true, 0);
     lv_meter_set_indicator_start_value(meter3, indic, 40);
     lv_meter_set_indicator_end_value(meter3, indic, 60);
 
-    indic = lv_meter_add_needle_line(meter3, scale, 4, lv_palette_darken(LV_PALETTE_GREY, 4), -25);
+    indic = lv_meter_add_needle_line(meter3, scale, 4, lv_palette_darken(LV_PALETTE_RED, 4), -25);
 
     lv_obj_t * mbps_label = lv_label_create(meter3);
     lv_label_set_text(mbps_label, "-");
@@ -302,6 +313,11 @@ void dash_create2(void)//(lv_obj_t * parent) //arc
     lv_anim_set_time(&a, 4100);
     lv_anim_set_playback_time(&a, 800);
     lv_anim_start(&a);
+
+    // Page 2
+
+    meter4 = create_meter_box_peripheral(tablelabel2,"Coolant Temp","","","");
+    //lv_meter_l
 }
 
 
@@ -341,6 +357,45 @@ lv_obj_set_grid_cell(title_label, LV_GRID_ALIGN_START, 0, 2, LV_GRID_ALIGN_START
 lv_obj_set_grid_cell(meter, LV_GRID_ALIGN_START, 0, 2, LV_GRID_ALIGN_START, 1, 1);
 
 }
+return meter;
+}
+
+static lv_obj_t * create_meter_box_peripheral(lv_obj_t * parent, const char * title, const char * text1, const char * text2,
+    const char * text3)
+    { //inheritance when available
+    lv_obj_t * cont = lv_obj_create(parent);
+    //lv_obj_set_height(cont, LV_SIZE_CONTENT);
+    lv_obj_set_height(cont, LV_PCT(100));
+    lv_obj_set_flex_grow(cont, 1.8);
+
+    lv_obj_t * title_label = lv_label_create(cont);
+    lv_label_set_text(title_label, title);
+    lv_obj_add_style(title_label, &style_title, 0);
+
+    lv_obj_t * meter = lv_meter_create(cont);
+    lv_obj_remove_style(meter, NULL, LV_PART_MAIN);
+    lv_obj_remove_style(meter, NULL, LV_PART_INDICATOR);
+    lv_obj_set_width(meter, LV_PCT(100));
+    lv_obj_set_height(meter, LV_PCT(90));
+
+
+
+    if(disp_size == DISP_MEDIUM) {
+    static lv_coord_t grid_col_dsc[] = {LV_GRID_CONTENT, LV_GRID_FR(1), LV_GRID_CONTENT, LV_GRID_FR(8), LV_GRID_TEMPLATE_LAST};
+    static lv_coord_t grid_row_dsc[] = {LV_GRID_CONTENT, LV_GRID_FR(1), LV_GRID_CONTENT, LV_GRID_CONTENT, LV_GRID_CONTENT, LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
+
+    lv_obj_set_grid_dsc_array(cont, grid_col_dsc, grid_row_dsc);
+    lv_obj_set_grid_cell(title_label, LV_GRID_ALIGN_START, 0, 4, LV_GRID_ALIGN_START, 0, 1);
+    lv_obj_set_grid_cell(meter, LV_GRID_ALIGN_START, 0, 1, LV_GRID_ALIGN_START, 1, 3);
+    }
+    else {
+    static lv_coord_t grid_col_dsc[] = {LV_GRID_CONTENT, LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
+    static lv_coord_t grid_row_dsc[] = {LV_GRID_CONTENT, LV_GRID_CONTENT, LV_GRID_CONTENT, LV_GRID_CONTENT, LV_GRID_CONTENT, LV_GRID_TEMPLATE_LAST};
+    lv_obj_set_grid_dsc_array(cont, grid_col_dsc, grid_row_dsc);
+    lv_obj_set_grid_cell(title_label, LV_GRID_ALIGN_START, 0, 2, LV_GRID_ALIGN_START, 0, 1);
+    lv_obj_set_grid_cell(meter, LV_GRID_ALIGN_START, 0, 2, LV_GRID_ALIGN_START, 1, 1);
+
+    }
 return meter;
 }
 
