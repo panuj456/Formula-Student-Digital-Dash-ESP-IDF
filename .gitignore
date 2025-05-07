@@ -3,3 +3,4 @@ build/
 *.old
 test2.c
 test2.h
+dependencies.lock
