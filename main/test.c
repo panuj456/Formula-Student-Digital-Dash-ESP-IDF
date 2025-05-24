@@ -30,6 +30,7 @@ static void meter1_anim_cb(void *var, int32_t v);
 static void meter3_update(void *var, int32_t v);
 
 // statics
+static lv_obj_t *meter5;
 static lv_obj_t *meter4;
 static lv_obj_t *meter3;
 static lv_obj_t *meter2;
@@ -258,6 +259,9 @@ void dash_create2(void) //(lv_obj_t * parent) //arc
     // meter2_gear_label->set_style_text_align(meter2_gear_label->TEXT_ALIGN.CENTER,0);
     // lv_obj_set_style_text_font(meter2_gear_label, &arial70px, "0");
     // lv_obj_add_style(meter2_gear_label, LV_PART_MAIN, &st);
+    meter5 = create_meter_box_GEAR(tablelabel, "Battery Voltage", "", "", "");
+    lv_obj_t *meter5_Voltage_label = lv_label_create(meter2);
+    lv_label_set_text(meter5_Voltage_label, "0");
 
     // Vehicle Speed
     meter3 = create_meter_box(tablelabel, "KM/H", "", "", "");
@@ -337,6 +341,16 @@ void dash_create2(void) //(lv_obj_t * parent) //arc
     // Page 2
 
     meter4 = create_meter_box_peripheral(tablelabel2, "Coolant Temp", "", "", "");
+    lv_obj_t *oil_temp = create_meter_box_peripheral(tablelabel2, "Oil Temperature", "", "", "");
+    lv_obj_t *oil_pressure = create_meter_box_peripheral(tablelabel2, "Oil Pressure", "", "", "");
+    lv_obj_t *fuel_temp = create_meter_box_peripheral(tablelabel2, "Fuel Temperature", "", "", "");
+    lv_obj_t *fuel_pressure = create_meter_box_peripheral(tablelabel2, "Fuel Pressure", "", "", "");
+    lv_obj_t *battery_voltage = create_meter_box_peripheral(tablelabel2, "Battery Voltage", "", "", "");
+    lv_obj_t *intake_temp = create_meter_box_peripheral(tablelabel2, "Intake Air Temp", "", "", "");
+    //lv_obj_t *fuel_level = create_meter_box_peripheral(tablelabel2, "Fuel Level", "", "", "");
+    lv_obj_t *brake_pressure = create_meter_box_peripheral(tablelabel2, "Brake Pressure", "", "", "");
+    lv_obj_t *lambda = create_meter_box_peripheral(tablelabel2, "Lambda", "", "", "");
+    lv_obj_t *ignition_switch = create_meter_box_peripheral(tablelabel2, "Ignition Switch State", "", "", "");
     // lv_meter_l
 
     //listen and update function called here
@@ -383,7 +397,7 @@ static lv_obj_t *create_meter_box(lv_obj_t *parent, const char *title, const cha
     }
     return meter;
 }
-
+/*
 static lv_obj_t *create_meter_box_peripheral(lv_obj_t *parent, const char *title, const char *text1, const char *text2,
                                              const char *text3)
 { // inheritance when available
@@ -408,8 +422,8 @@ static lv_obj_t *create_meter_box_peripheral(lv_obj_t *parent, const char *title
         static lv_coord_t grid_row_dsc[] = {LV_GRID_CONTENT, LV_GRID_FR(1), LV_GRID_CONTENT, LV_GRID_CONTENT, LV_GRID_CONTENT, LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
 
         lv_obj_set_grid_dsc_array(cont, grid_col_dsc, grid_row_dsc);
-        lv_obj_set_grid_cell(title_label, LV_GRID_ALIGN_START, 0, 4, LV_GRID_ALIGN_START, 0, 1);
-        lv_obj_set_grid_cell(meter, LV_GRID_ALIGN_START, 0, 1, LV_GRID_ALIGN_START, 1, 3);
+        //lv_obj_set_grid_cell(title_label, LV_GRID_ALIGN_START, 0, 4, LV_GRID_ALIGN_START, 0, 1);
+        //lv_obj_set_grid_cell(meter, LV_GRID_ALIGN_START, 0, 1, LV_GRID_ALIGN_START, 1, 3);
     }
     else
     {
@@ -420,6 +434,28 @@ static lv_obj_t *create_meter_box_peripheral(lv_obj_t *parent, const char *title
         lv_obj_set_grid_cell(meter, LV_GRID_ALIGN_START, 0, 2, LV_GRID_ALIGN_START, 1, 1);
     }
     return meter;
+}
+*/
+
+static lv_obj_t *create_meter_box_peripheral(lv_obj_t *parent, const char *title, const char *value, const char *unit, const char *reserved)
+{
+    lv_obj_t *box = lv_obj_create(parent);
+    lv_obj_set_size(box, 150, 100);
+    lv_obj_set_flex_flow(box, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_all(box, 10, 0);
+
+    lv_obj_t *label_title = lv_label_create(box);
+    lv_label_set_text(label_title, title);
+
+    lv_obj_t *label_value = lv_label_create(box);
+    lv_label_set_text(label_value, value);
+    lv_obj_set_style_text_font(label_value, font_large, 0);
+    lv_obj_set_style_text_color(label_value, lv_palette_main(LV_PALETTE_BLUE), 0);
+
+    lv_obj_t *label_unit = lv_label_create(box);
+    lv_label_set_text(label_unit, unit);
+
+    return box;
 }
 
 static lv_obj_t *create_meter_box_GEAR(lv_obj_t *parent, const char *title, const char *text1, const char *text2,
