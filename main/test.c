@@ -259,8 +259,8 @@ void dash_create2(void) //(lv_obj_t * parent) //arc
     // meter2_gear_label->set_style_text_align(meter2_gear_label->TEXT_ALIGN.CENTER,0);
     // lv_obj_set_style_text_font(meter2_gear_label, &arial70px, "0");
     // lv_obj_add_style(meter2_gear_label, LV_PART_MAIN, &st);
-    meter5 = create_meter_box_GEAR(tablelabel, "Battery Voltage", "", "", "");
-    lv_obj_t *meter5_Voltage_label = lv_label_create(meter2);
+    meter5 = create_meter_box_peripheral(tablelabel, "Battery Voltage", "", "", "");
+    lv_obj_t *meter5_Voltage_label = lv_label_create(meter5);
     lv_label_set_text(meter5_Voltage_label, "0");
 
     // Vehicle Speed
@@ -268,6 +268,8 @@ void dash_create2(void) //(lv_obj_t * parent) //arc
         lv_anim_t a;
     if (disp_size < DISP_LARGE)
         lv_obj_add_flag(lv_obj_get_parent(meter3), LV_OBJ_FLAG_FLEX_IN_NEW_TRACK);
+    lv_obj_t *meter3_Voltage_label = lv_label_create(meter3);
+    lv_label_set_text(meter3_Voltage_label, "Voltage");
 
     /*Add a special circle to the needle's pivot*/
     lv_obj_set_style_pad_hor(meter3, 30, 0);
@@ -359,7 +361,7 @@ void dash_create2(void) //(lv_obj_t * parent) //arc
     lv_label_set_text(meter2_gear_label, "5");
     //lv_meter_set_indicator_value(meter1, indic2, 80);
 }
-
+/*
 static lv_obj_t *create_meter_box(lv_obj_t *parent, const char *title, const char *text1, const char *text2,
                                   const char *text3)
 {
@@ -397,6 +399,8 @@ static lv_obj_t *create_meter_box(lv_obj_t *parent, const char *title, const cha
     }
     return meter;
 }
+    */
+   
 /*
 static lv_obj_t *create_meter_box_peripheral(lv_obj_t *parent, const char *title, const char *text1, const char *text2,
                                              const char *text3)
@@ -437,10 +441,10 @@ static lv_obj_t *create_meter_box_peripheral(lv_obj_t *parent, const char *title
 }
 */
 
-static lv_obj_t *create_meter_box_peripheral(lv_obj_t *parent, const char *title, const char *value, const char *unit, const char *reserved)
+static lv_obj_t *create_meter_box(lv_obj_t *parent, const char *title, const char *value, const char *unit, const char *reserved)
 {
     lv_obj_t *box = lv_obj_create(parent);
-    lv_obj_set_size(box, 150, 100);
+    lv_obj_set_size(box, 150, 400);
     lv_obj_set_flex_flow(box, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_style_pad_all(box, 10, 0);
 
@@ -458,9 +462,48 @@ static lv_obj_t *create_meter_box_peripheral(lv_obj_t *parent, const char *title
     return box;
 }
 
-static lv_obj_t *create_meter_box_GEAR(lv_obj_t *parent, const char *title, const char *text1, const char *text2,
-                                       const char *text3)
+static lv_obj_t *create_meter_box_peripheral(lv_obj_t *parent, const char *title, const char *value, const char *unit, const char *reserved)
 {
+    lv_obj_t *box = lv_obj_create(parent);
+    lv_obj_set_size(box, 150, 400);
+    lv_obj_set_flex_flow(box, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_all(box, 10, 0);
+
+    lv_obj_t *label_title = lv_label_create(box);
+    lv_label_set_text(label_title, title);
+
+    lv_obj_t *label_value = lv_label_create(box);
+    lv_label_set_text(label_value, value);
+    lv_obj_set_style_text_font(label_value, font_large, 0);
+    lv_obj_set_style_text_color(label_value, lv_palette_main(LV_PALETTE_BLUE), 0);
+
+    lv_obj_t *label_unit = lv_label_create(box);
+    lv_label_set_text(label_unit, unit);
+
+    return box;
+}
+
+static lv_obj_t *create_meter_box_GEAR(lv_obj_t *parent, const char *title, const char *value, const char *unit,
+                                       const char *reserved)
+{
+   lv_obj_t *box = lv_obj_create(parent);
+    lv_obj_set_size(box, 150, 400);
+    lv_obj_set_flex_flow(box, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_all(box, 10, 0);
+
+    lv_obj_t *label_title = lv_label_create(box);
+    lv_label_set_text(label_title, title);
+
+    lv_obj_t *label_value = lv_label_create(box);
+    lv_label_set_text(label_value, value);
+    lv_obj_set_style_text_font(label_value, font_large, 0);
+    lv_obj_set_style_text_color(label_value, lv_palette_main(LV_PALETTE_BLUE), 0);
+
+    lv_obj_t *label_unit = lv_label_create(box);
+    lv_label_set_text(label_unit, unit);
+
+    return box;
+    /*
     lv_obj_t *cont = lv_obj_create(parent);
     lv_obj_set_height(cont, LV_SIZE_CONTENT);
     // lv_obj_set_height(cont, LV_PCT(10000));
@@ -494,6 +537,7 @@ static lv_obj_t *create_meter_box_GEAR(lv_obj_t *parent, const char *title, cons
         lv_obj_set_grid_cell(meter, LV_GRID_ALIGN_START, 0, 2, LV_GRID_ALIGN_START, 1, 1);
     }
     return meter;
+    */
 }
 
 static void meter1_anim_cb(void *var, int32_t v)
