@@ -537,7 +537,7 @@ CONFIG_PARTITION_TABLE_MD5=y
 # end of Partition Table
 
 #
-# Example Configuration
+# GUI Configuration
 #
 
 #
@@ -567,7 +567,18 @@ CONFIG_EXAMPLE_LVGL_PORT_ROTATION_0=y
 # CONFIG_EXAMPLE_LVGL_PORT_ROTATION_270 is not set
 CONFIG_EXAMPLE_LVGL_PORT_ROTATION_DEGREE=0
 # end of Display
-# end of Example Configuration
+# end of GUI Configuration
+
+#
+# ECU Configuration
+#
+CONFIG_ENV_GPIO_RANGE_MIN=0
+CONFIG_ENV_GPIO_RANGE_MAX=48
+CONFIG_ENV_GPIO_IN_RANGE_MAX=48
+CONFIG_ENV_GPIO_OUT_RANGE_MAX=48
+CONFIG_EXAMPLE_TX_GPIO_NUM=0
+CONFIG_EXAMPLE_RX_GPIO_NUM=2
+# end of ECU Configuration
 
 #
 # Compiler options
