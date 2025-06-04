@@ -14,12 +14,19 @@ typedef enum
 } disp_size_t;
 
 // static prototypes
-static lv_obj_t *create_meter_box(lv_obj_t *parent, const char *title, const char *text1, const char *text2,
-                                  const char *text3);
+/*static lv_obj_t *create_meter_box(lv_obj_t *parent, const char *title, const char *text1, const char *text2,
+                                  const char *text3); 
 static lv_obj_t *create_meter_box_peripheral(lv_obj_t *parent, const char *title, const char *text1, const char *text2,
                                              const char *text3);
 static lv_obj_t *create_meter_box_GEAR(lv_obj_t *parent, const char *title, const char *text1, const char *text2,
                                        const char *text3);
+                                       */
+//static lv_obj_t *create_meter_box(lv_obj_t *parent, const char *title, const char *value, const char *unit, const char *reserved);
+static lv_obj_t *create_meter_box(lv_obj_t *parent, const char *title, const char *text1, const char *text2,
+                                  const char *text3); 
+static lv_obj_t *create_meter_box_peripheral(lv_obj_t *parent, const char *title, const char *value, const char *unit, const char *reserved);
+static lv_obj_t *create_meter_box_GEAR(lv_obj_t *parent, const char *title, const char *value, const char *unit,
+                                       const char *reserved);
 lv_meter_scale_t *scale;
 lv_meter_indicator_t *indic;
 lv_meter_scale_t *scale2;
@@ -249,28 +256,30 @@ void dash_create2(void) //(lv_obj_t * parent) //arc
     lv_anim_set_playback_time(&a2, 800);
     lv_anim_start(&a2);
 
+
     // Gear Screen
     static lv_style_t st;
     lv_style_init(&st);
     // lv_style_set_text_font(&st, LV_STATE_DEFAULT, &arial70px);
+
+    // Vehicle Speed
+    meter3 = create_meter_box(tablelabel, "KM/H", "", "", "");
+
+    if (disp_size < DISP_LARGE)
+        lv_obj_add_flag(lv_obj_get_parent(meter3), LV_OBJ_FLAG_FLEX_IN_NEW_TRACK);
+
+
     meter2 = create_meter_box_GEAR(tablelabel, "GEAR", "", "", "");
     lv_obj_t *meter2_gear_label = lv_label_create(meter2);
     lv_label_set_text(meter2_gear_label, "0");
     // meter2_gear_label->set_style_text_align(meter2_gear_label->TEXT_ALIGN.CENTER,0);
     // lv_obj_set_style_text_font(meter2_gear_label, &arial70px, "0");
     // lv_obj_add_style(meter2_gear_label, LV_PART_MAIN, &st);
-    meter5 = create_meter_box_peripheral(tablelabel, "Battery Voltage", "", "", "");
+    meter5 = create_meter_box_peripheral(tablelabel, "Voltage", "", "", "");
     lv_obj_t *meter5_Voltage_label = lv_label_create(meter5);
     lv_label_set_text(meter5_Voltage_label, "0");
 
-    // Vehicle Speed
-    meter3 = create_meter_box(tablelabel, "KM/H", "", "", "");
-        lv_anim_t a;
-    if (disp_size < DISP_LARGE)
-        lv_obj_add_flag(lv_obj_get_parent(meter3), LV_OBJ_FLAG_FLEX_IN_NEW_TRACK);
-    lv_obj_t *meter3_Voltage_label = lv_label_create(meter3);
-    lv_label_set_text(meter3_Voltage_label, "Voltage");
-
+    lv_anim_t a;
     /*Add a special circle to the needle's pivot*/
     lv_obj_set_style_pad_hor(meter3, 30, 0);
     lv_obj_set_style_size(meter3, 20, LV_PART_INDICATOR);
@@ -340,7 +349,9 @@ void dash_create2(void) //(lv_obj_t * parent) //arc
     lv_anim_start(&a);
     */
 
-    // Page 2
+    
+    
+        // Page 2
 
     meter4 = create_meter_box_peripheral(tablelabel2, "Coolant Temp", "", "", "");
     lv_obj_t *oil_temp = create_meter_box_peripheral(tablelabel2, "Oil Temperature", "", "", "");
@@ -356,12 +367,13 @@ void dash_create2(void) //(lv_obj_t * parent) //arc
     // lv_meter_l
 
     //listen and update function called here
+    
     meter3_update(indic, 70); //without animation, updates value with new value
     //lv_meter_set_indicator_value(meter1, indic2, 70);
     lv_label_set_text(meter2_gear_label, "5");
     //lv_meter_set_indicator_value(meter1, indic2, 80);
 }
-/*
+
 static lv_obj_t *create_meter_box(lv_obj_t *parent, const char *title, const char *text1, const char *text2,
                                   const char *text3)
 {
@@ -399,8 +411,8 @@ static lv_obj_t *create_meter_box(lv_obj_t *parent, const char *title, const cha
     }
     return meter;
 }
-    */
-   
+
+
 /*
 static lv_obj_t *create_meter_box_peripheral(lv_obj_t *parent, const char *title, const char *text1, const char *text2,
                                              const char *text3)
@@ -440,7 +452,7 @@ static lv_obj_t *create_meter_box_peripheral(lv_obj_t *parent, const char *title
     return meter;
 }
 */
-
+/*
 static lv_obj_t *create_meter_box(lv_obj_t *parent, const char *title, const char *value, const char *unit, const char *reserved)
 {
     lv_obj_t *box = lv_obj_create(parent);
@@ -461,11 +473,12 @@ static lv_obj_t *create_meter_box(lv_obj_t *parent, const char *title, const cha
 
     return box;
 }
+    */
 
 static lv_obj_t *create_meter_box_peripheral(lv_obj_t *parent, const char *title, const char *value, const char *unit, const char *reserved)
 {
     lv_obj_t *box = lv_obj_create(parent);
-    lv_obj_set_size(box, 150, 400);
+    lv_obj_set_size(box, 100, 200);
     lv_obj_set_flex_flow(box, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_style_pad_all(box, 10, 0);
 
@@ -487,7 +500,7 @@ static lv_obj_t *create_meter_box_GEAR(lv_obj_t *parent, const char *title, cons
                                        const char *reserved)
 {
    lv_obj_t *box = lv_obj_create(parent);
-    lv_obj_set_size(box, 150, 400);
+    lv_obj_set_size(box, 100, 200);
     lv_obj_set_flex_flow(box, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_style_pad_all(box, 10, 0);
 
