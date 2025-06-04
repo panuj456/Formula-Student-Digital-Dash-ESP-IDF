@@ -14,7 +14,7 @@ typedef enum
 } disp_size_t;
 
 // static prototypes
-/*static lv_obj_t *create_meter_box(lv_obj_t *parent, const char *title, const char *text1, const char *text2,
+/*static lv_obj_t *create_meterbox(lv_obj_t *parent, const char *title, const char *text1, const char *text2,
                                   const char *text3); 
 static lv_obj_t *create_meter_box_peripheral(lv_obj_t *parent, const char *title, const char *text1, const char *text2,
                                              const char *text3);
@@ -22,7 +22,7 @@ static lv_obj_t *create_meter_box_GEAR(lv_obj_t *parent, const char *title, cons
                                        const char *text3);
                                        */
 //static lv_obj_t *create_meter_box(lv_obj_t *parent, const char *title, const char *value, const char *unit, const char *reserved);
-static lv_obj_t *create_meter_box(lv_obj_t *parent, const char *title, const char *text1, const char *text2,
+static lv_obj_t *create_meterbox(lv_obj_t *parent, const char *title, const char *text1, const char *text2,
                                   const char *text3); 
 static lv_obj_t *create_meter_box_peripheral(lv_obj_t *parent, const char *title, const char *value, const char *unit, const char *reserved);
 static lv_obj_t *create_meter_box_GEAR(lv_obj_t *parent, const char *title, const char *value, const char *unit,
@@ -175,7 +175,7 @@ void dash_create2(void) //(lv_obj_t * parent) //arc
     
     lv_anim_t a2;
     // lv_meter_t * meter1 = (lv_meter_t *)obj;
-    meter1 = create_meter_box(tablelabel, "RPM (x100)", "", "", "");
+    meter1 = create_meterbox(tablelabel, "RPM (x100)", "", "", "");
     if (disp_size < DISP_LARGE)
         lv_obj_add_flag(lv_obj_get_parent(meter1), LV_OBJ_FLAG_FLEX_IN_NEW_TRACK);
     /*Add a special circle to the needle's pivot*/
@@ -263,7 +263,7 @@ void dash_create2(void) //(lv_obj_t * parent) //arc
     // lv_style_set_text_font(&st, LV_STATE_DEFAULT, &arial70px);
 
     // Vehicle Speed
-    meter3 = create_meter_box(tablelabel, "KM/H", "", "", "");
+    meter3 = create_meterbox(tablelabel, "KM/H", "", "", "");
 
     if (disp_size < DISP_LARGE)
         lv_obj_add_flag(lv_obj_get_parent(meter3), LV_OBJ_FLAG_FLEX_IN_NEW_TRACK);
@@ -374,7 +374,7 @@ void dash_create2(void) //(lv_obj_t * parent) //arc
     //lv_meter_set_indicator_value(meter1, indic2, 80);
 }
 
-static lv_obj_t *create_meter_box(lv_obj_t *parent, const char *title, const char *text1, const char *text2,
+static lv_obj_t *create_meterbox(lv_obj_t *parent, const char *title, const char *text1, const char *text2,
                                   const char *text3)
 {
     lv_obj_t *cont = lv_obj_create(parent);
@@ -453,7 +453,7 @@ static lv_obj_t *create_meter_box_peripheral(lv_obj_t *parent, const char *title
 }
 */
 /*
-static lv_obj_t *create_meter_box(lv_obj_t *parent, const char *title, const char *value, const char *unit, const char *reserved)
+static lv_obj_t *create_meterbox(lv_obj_t *parent, const char *title, const char *value, const char *unit, const char *reserved)
 {
     lv_obj_t *box = lv_obj_create(parent);
     lv_obj_set_size(box, 150, 400);
