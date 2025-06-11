@@ -1,6 +1,7 @@
 #include "lvgl.h"
 
 
+
 // Declare the fonts (this makes sure linker knows about them)
 LV_FONT_DECLARE(lv_font_montserrat_36);
 LV_FONT_DECLARE(lv_font_montserrat_48);
@@ -9,13 +10,19 @@ LV_FONT_DECLARE(lv_font_montserrat_48);
 #define SCREEN_WIDTH  800
 #define SCREEN_HEIGHT 480
 
-static lv_obj_t *rpm_arc;
+static lv_obj_t *rpm_bar;
 static lv_obj_t *rpm_label;
 static lv_obj_t *gear_label;
 static lv_obj_t *speed_label;
 static lv_obj_t *fuel_bar;
 static lv_obj_t *temp_bar;
 static lv_obj_t *canvas;
+static lv_obj_t *rpm_value;
+
+static void update_dashboard(uint16_t g_rpm, int g_gear, int g_speed, int g_fuel, int g_temp);
+static void dash_create2(void);
+static void CAN_task(void *arg);
+static void create_canvas();
 
 // Make sure you’ve got these fonts enabled in your lv_conf.h
 LV_FONT_DECLARE(lv_font_montserrat_48);
@@ -39,29 +46,74 @@ void dash_create2(void)
     // Add primary meters here...
 
     // --- RPM Arc Meter ---
+    /*
     lv_obj_t *rpm_arc = lv_arc_create(primary_data);
+    lv_obj_clear_flag(rpm_arc, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_style(rpm_arc, NULL, LV_PART_KNOB);
     lv_obj_set_size(rpm_arc, 150, 150);
     lv_obj_center(rpm_arc);
     lv_arc_set_range(rpm_arc, 0, 8000);
     lv_arc_set_value(rpm_arc, 0);
     lv_obj_set_style_arc_color(rpm_arc, lv_palette_main(LV_PALETTE_RED), 0);
-    lv_obj_set_style_arc_width(rpm_arc, 10, 0);
+    lv_obj_set_style_arc_width(rpm_arc, 20, 0);
     lv_arc_set_bg_angles(rpm_arc, 135, 45); // For a gauge style arc
+    */
+    
+    rpm_bar = lv_bar_create(primary_data);
+    lv_obj_set_size(rpm_bar, 475, 50);
+    lv_obj_align(rpm_bar, LV_ALIGN_TOP_MID, 0, 10);
+    lv_obj_set_style_bg_color(rpm_bar, lv_color_black(), 0);
+    lv_obj_set_style_border_width(rpm_bar, 10, 0);
+    lv_bar_set_range(rpm_bar, 0, 12000); // example range
+    lv_bar_set_value(rpm_bar, 0, LV_ANIM_OFF);
+    lv_obj_clear_flag(rpm_bar, LV_OBJ_FLAG_SCROLLABLE);
+
+    // Style bar
+    lv_obj_set_style_bg_color(rpm_bar, lv_color_make(30, 30, 30), LV_PART_MAIN);
+    lv_obj_set_style_radius(rpm_bar, 10, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(rpm_bar, lv_palette_main(LV_PALETTE_RED), LV_PART_INDICATOR);
+    lv_obj_set_style_radius(rpm_bar, 10, LV_PART_INDICATOR);
+        
+
+    // RPM Value Label (outside arc)
+    rpm_label = lv_label_create(primary_data);
+    lv_label_set_text(rpm_label, "0000");
+    lv_obj_set_style_text_font(rpm_label, &lv_font_montserrat_36, 0);
+    lv_obj_set_style_text_color(rpm_label, lv_palette_main(LV_PALETTE_RED), 0);
+    lv_obj_set_style_bg_color(rpm_label, lv_color_black(), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(rpm_label, LV_OPA_COVER, LV_PART_MAIN);    
+    lv_obj_align_to(rpm_label, rpm_bar, LV_ALIGN_CENTER, 0, 70);
+
+    lv_obj_t *rpm_unit_label = lv_label_create(primary_data);
+    lv_label_set_text(rpm_unit_label, "RPM");
+    lv_obj_set_style_text_font(rpm_unit_label, &lv_font_montserrat_16, 0);
+    lv_obj_set_style_text_color(rpm_unit_label, lv_color_hex(0x999999), 0);
+    lv_obj_align_to(rpm_unit_label, rpm_bar, LV_ALIGN_CENTER, 0, 100);
 
     
     // --- Gear Label ---
-    lv_obj_t *gear_label = lv_label_create(primary_data);
+    gear_label = lv_label_create(primary_data);
     lv_obj_set_style_text_font(gear_label, &lv_font_montserrat_48, 0);
     lv_obj_set_style_text_color(gear_label, lv_palette_main(LV_PALETTE_YELLOW), 0);
     lv_label_set_text(gear_label, "N");
-    lv_obj_align(gear_label, LV_ALIGN_CENTER, 0, 80);
+    // Set background color and opacity
+    lv_obj_set_style_bg_color(gear_label, lv_color_black(), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(gear_label, LV_OPA_COVER, LV_PART_MAIN);    
+    lv_obj_align(gear_label, LV_ALIGN_CENTER, 0, 0);
 
     // --- Speed Label ---
-    lv_obj_t *speed_label = lv_label_create(primary_data);
+    speed_label = lv_label_create(primary_data);
     lv_obj_set_style_text_font(speed_label, &lv_font_montserrat_36, 0);
     lv_obj_set_style_text_color(speed_label, lv_palette_main(LV_PALETTE_BLUE), 0);
-    lv_label_set_text(speed_label, "0 KM/H");
-    lv_obj_align(speed_label, LV_ALIGN_BOTTOM_MID, 0, -20);
+    lv_obj_set_style_bg_color(speed_label, lv_color_black(), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(speed_label, LV_OPA_COVER, LV_PART_MAIN);   
+    lv_label_set_text(speed_label, "0");
+    lv_obj_align(speed_label, LV_ALIGN_BOTTOM_MID, 0, -50);
+    lv_obj_t *kmh_label = lv_label_create(primary_data);
+    lv_obj_set_style_text_font(kmh_label, &lv_font_montserrat_16, 0);
+    lv_obj_set_style_text_color(kmh_label, lv_palette_main(LV_PALETTE_BLUE), 0);
+    lv_label_set_text(kmh_label, "KM/H");
+    lv_obj_align(kmh_label, LV_ALIGN_BOTTOM_MID, 50, -50);
 
 
     // Page 2: secondary data
@@ -72,8 +124,18 @@ void dash_create2(void)
     // Fuel Temp Label
     lv_obj_t *fuel_temp_label = lv_label_create(secondary_data);
     lv_obj_set_style_text_font(fuel_temp_label, &lv_font_montserrat_24, 0);
-    lv_label_set_text(fuel_temp_label, "Fuel Temp:\n80 °C");
+    lv_label_set_text(fuel_temp_label, "Fuel Temp");
     lv_obj_align(fuel_temp_label, LV_ALIGN_TOP_MID, 0, 20);
+
+    temp_bar = lv_bar_create(secondary_data);
+    lv_obj_set_size(temp_bar, 200, 20);
+    lv_obj_align(temp_bar, LV_ALIGN_TOP_LEFT, 20, 200);
+    lv_bar_set_range(temp_bar, 0, 120); // Coolant temp in °C
+    
+    fuel_bar = lv_bar_create(secondary_data);
+    lv_obj_set_size(fuel_bar, 200, 20);
+    lv_obj_align(fuel_bar, LV_ALIGN_TOP_LEFT, 20, 150);
+    lv_bar_set_range(fuel_bar, 0, 100); // Example range for fuel %
 
     // Oil Pressure Label
     lv_obj_t *oil_pressure_label = lv_label_create(secondary_data);
@@ -83,37 +145,46 @@ void dash_create2(void)
 }
 
 // Example function called periodically:
-void update_dashboard(int rpm, int gear, int speed, int fuel, int temp) {
-    // RPM
-    lv_arc_set_value(rpm_arc, rpm);
-    lv_label_set_text_fmt(rpm_label, "%d", rpm);
+void update_dashboard(uint16_t g_rpm, int g_gear, int g_speed, int g_fuel, int g_temp) { //update peripheral
+    // --- RPM ---
+    if (g_rpm > 12000) g_rpm = 12000;
+    // Map RPM to arc value (assuming arc max is 100)
+    lv_bar_set_value(rpm_bar, g_rpm, LV_ANIM_ON);
+    lv_label_set_text_fmt(rpm_label, "%05d", g_rpm);  // Set text directly
 
-    // Gear
-    lv_label_set_text_fmt(gear_label, "%d", gear);
+    // --- Gear ---
+    // Gear text
+    const char *gear_text;
+    switch (g_gear) {
+        case 0: gear_text = "N"; break;
+        case 1: gear_text = "1"; break;
+        case 2: gear_text = "2"; break;
+        case 3: gear_text = "3"; break;
+        case 4: gear_text = "4"; break;
+        case 5: gear_text = "5"; break;
+        case 6: gear_text = "6"; break;
+        default: gear_text = "?"; break;
+    }
+    lv_label_set_text_fmt(gear_label, gear_text);  // Show gear as digit (or replace with "N" if gear == 0 etc.)
 
-    // Speed
-    lv_label_set_text_fmt(speed_label, "%d", speed);
+    // --- Speed ---
+    lv_label_set_text_fmt(speed_label, "%3d", g_speed);
 
-    // Fuel % (0–100)
-    lv_bar_set_value(fuel_bar, fuel, LV_ANIM_ON);
+    // update more values
 
-    // Coolant Temp (0–120°C)
-    lv_bar_set_value(temp_bar, temp, LV_ANIM_ON);
+    // --- Fuel ---
+    lv_bar_set_value(fuel_bar, g_fuel, LV_ANIM_ON);
+
+    // --- Coolant Temp ---
+    lv_bar_set_value(temp_bar, g_temp, LV_ANIM_ON);
 }
 
-void create_canvas()
-{
-    lv_obj_t *scr = lv_obj_create(NULL);
-    lv_scr_load(scr);
-
-    canvas = lv_canvas_create(scr);
-    lv_obj_set_size(canvas, LV_HOR_RES, LV_VER_RES);
-    lv_obj_align(canvas, LV_ALIGN_CENTER, 0, 0);
-
-    lv_color_t *buf = (lv_color_t *)lv_mem_alloc(LV_HOR_RES * LV_VER_RES * sizeof(lv_color_t));
-    lv_canvas_set_buffer(canvas, buf, LV_HOR_RES, LV_VER_RES, LV_IMG_CF_TRUE_COLOR);
-
-    // Set a background color for the canvas
-    lv_canvas_fill_bg(canvas, lv_color_hex(0x078080), LV_OPA_COVER);
-    
+void CAN_task(void *arg) {
+    while (1) {
+        if (lvgl_port_lock(-1)) {
+            update_dashboard(g_rpm, g_gear, g_speed, g_fuel, g_temp);
+            lvgl_port_unlock();
+        }
+        vTaskDelay(pdMS_TO_TICKS(100)); // update every 100ms
+    }
 }

@@ -4,6 +4,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
+extern QueueHandle_t xECU;
 #include "freertos/event_groups.h"
 
 #include "twai.h"
@@ -30,7 +31,7 @@ void receive_can_message() {
         
             case 1136: // GearSelectorPosition (0x470)
                 ESP_LOGI(TWAI_TAG, "Message received: ID=%03X", (unsigned int)received_msg.identifier);
-                uint8_t GearSelectorPosition = received_msg.data[7];
+                uint8_t GearSelectorPosition = received_msg.data[6];
                 if (GearSelectorPosition == 0) {
                     ESP_LOGI(TWAI_TAG, "Neutral");
                 } else if (GearSelectorPosition == 1) {
@@ -50,12 +51,32 @@ void receive_can_message() {
                 } else {
                     ESP_LOGI(TWAI_TAG, "Gear Selector Position: %d", GearSelectorPosition);
                 }
+
+                uint8_t Gear = received_msg.data[7];
+                const char *gear_text;
+                switch (Gear) {
+                    case 0: uint8_t g_gear = 0; break; //globals_used
+                    case 1: uint8_t g_gear = 1; break;
+                    case 2: uint8_t g_gear = 2; break;
+                    case 3: uint8_t g_gear = 3; break;
+                    case 4: uint8_t g_gear = 4; break;
+                    case 5: uint8_t g_gear = 5; break;
+                    case 6: uint8_t g_gear = 6; break;
+                    default:
+                        gear_text = "?";
+                        g_gear = -1;  // Invalid or unknown gear
+                        ESP_LOGW(TWAI_TAG, "Unknown manual gear value: %d", Gear);
+                        break;
+                }
+
                 break;
+                
         
             case 864:  // RPM, Throttle Position (0x360)
                 ESP_LOGI(TWAI_TAG, "Message received: ID=%03X", (unsigned int)received_msg.identifier);
                 // Extract RPM and Throttle Position
                 uint8_t rpm = (received_msg.data[0] << 8) | received_msg.data[1];
+                uint16_t g_rpm = (received_msg.data[0] << 8) | received_msg.data[1]; //globals_used
                 uint8_t throttlePosition = (received_msg.data[4] << 8) | received_msg.data[5];
                     
                 // Perform computation for Throttle Position
@@ -89,6 +110,7 @@ void receive_can_message() {
             case 880:  // Vehicle Speed (0x370)
                 ESP_LOGI(TWAI_TAG, "Message received: ID=%03X", (unsigned int)received_msg.identifier);
                 uint8_t VehicleSpeed = (received_msg.data[0] << 8) | received_msg.data[1];
+                uint8_t g_speed = (received_msg.data[0] << 8) | received_msg.data[1];//globals_used
                 float VehicleSpeedComp = VehicleSpeed / 10.0;
                 ESP_LOGI(TWAI_TAG, "Vehicle Speed: %d (Computed: %.2f)", VehicleSpeed, VehicleSpeedComp);
                 break;
