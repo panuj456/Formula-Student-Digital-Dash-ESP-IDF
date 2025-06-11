@@ -19,6 +19,7 @@
 static const char * TAG_MAIN = "MAIN";
 QueueHandle_t xECU; //commented out for testing
 extern void CAN_task(void *arg);
+extern void CAN_INIT();
 
 //global shared variables - can be a struct
 uint16_t g_rpm = 0;
@@ -33,7 +34,7 @@ void app_main()
     // Create Queue - comment out for testing
     /*xECU= xQueueCreate(1, sizeof(stats_t));
     if ( xECU == 0 ) {*/
-    xECU = xQueueCreate(20, sizeof(uint8_t));
+    xECU = xQueueCreate(1, sizeof(uint8_t)); //uint8_t
     if (xECU == NULL) {
         ESP_LOGE(TAG_MAIN,"Failed to create ECU queue= %p",xECU); // Failed to create the queue.
     }
@@ -55,6 +56,6 @@ void app_main()
 
     }
 
-    xTaskCreatePinnedToCore(CAN_INIT, "CAN Task", 4096, NULL, 5, NULL, 1); // Runs on Core 1 - comment out for testing
+    //xTaskCreatePinnedToCore(CAN_INIT, "CAN Task", 4096, NULL, 5, NULL, 1); // Runs on Core 1 - comment out for testing
     xTaskCreatePinnedToCore(CAN_task, "Dashboard Task", 4096, NULL, 4, NULL, 1);
 }

@@ -60,6 +60,7 @@ extern volatile int g_throttle;
 // == function prototypes =======================================
 
 void CAN_INIT(void *arg);
+void receive_can_message();
 
 
 #endif

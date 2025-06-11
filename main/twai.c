@@ -8,7 +8,7 @@ extern QueueHandle_t xECU;
 #include "freertos/event_groups.h"
 
 #include "twai.h"
-
+#include <inttypes.h> 
 
 static const char * TWAI_TAG = "TWAI";
 
@@ -16,7 +16,9 @@ void receive_can_message() {
     twai_message_t received_msg;
 
     // Wait for a CAN message to be received
-    esp_err_t ret = twai_receive(&received_msg, 1000 / portTICK_PERIOD_MS);
+    //esp_err_t ret = twai_receive(&received_msg, 1000 / portTICK_PERIOD_MS);
+    esp_err_t ret = twai_receive(&received_msg, pdMS_TO_TICKS(10));
+    
     if (ret == ESP_OK) {
         // Filter specific message IDs
         switch (received_msg.identifier) {
@@ -113,7 +115,7 @@ void receive_can_message() {
             case 880:  // Vehicle Speed (0x370)
                 ESP_LOGI(TWAI_TAG, "Message received: ID=%03X", (unsigned int)received_msg.identifier);
                 uint8_t VehicleSpeed = (received_msg.data[0] << 8) | received_msg.data[1];
-                uint8_t g_speed = (received_msg.data[0] << 8) | received_msg.data[1];//globals_used
+                g_speed = VehicleSpeed;//globals_used
                 float VehicleSpeedComp = VehicleSpeed / 10.0;
                 ESP_LOGI(TWAI_TAG, "Vehicle Speed: %d (Computed: %.2f)", VehicleSpeed, VehicleSpeedComp);
                 break;
@@ -153,9 +155,22 @@ void receive_can_message() {
                 break;
         } // End of switch
     } else {
-        ESP_LOGE(TWAI_TAG, "Failed to receive message!");
-    } // End of if ret == ESP_OK
-} // End of receive_can_message function
+        if (ret == ESP_ERR_TIMEOUT) {
+            // No message — expected occasionally
+        } else {
+            // Something is wrong, check bus status
+            twai_status_info_t status;
+            twai_get_status_info(&status);
+            const char *some_string = "CAN_RX";           // Or whatever string you want here
+            const char *esp_err_str = esp_err_to_name(ret);  // Convert esp_err_t to string
+            uint32_t rx_error = status.rx_error_counter;  // Example placeholder
+            uint32_t tx_error = status.tx_error_counter;  // Example placeholder
+
+            ESP_LOGW(TWAI_TAG, "Receive failed: %s | ESP err: %s | RX err: %" PRIu32 " | TX err: %" PRIu32 " | State: %" PRIu32,
+         some_string, esp_err_str, rx_error, tx_error, status.state);
+        }
+    }
+}
 
 
 void CAN_INIT(void *arg) {
@@ -175,10 +190,5 @@ void CAN_INIT(void *arg) {
     ESP_ERROR_CHECK(twai_start());
 
     ESP_LOGI(TWAI_TAG, "CAN driver installed and started.");
-
-    while (1) {
-        receive_can_message();
-        vTaskDelay(10 / portTICK_PERIOD_MS); // Avoids watchdog timeout
-    }
     
 }

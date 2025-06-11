@@ -27,6 +27,8 @@ extern volatile int g_throttle;
 
 
 void dash_create2();
+void receive_can_message(void);
+void CAN_task(void *arg);
 
 
 #endif /* LVGL_DEMO_H */

@@ -3,6 +3,7 @@
 #include "lvgl_port.h"               // For lvgl_port_lock/unlock (project specific)
 #include "freertos/FreeRTOS.h"       // For vTaskDelay and pdMS_TO_TICKS
 #include "freertos/task.h"
+#include "twai.h"
 
 
 
@@ -72,7 +73,7 @@ void dash_create2(void)
     // Create the bar
     throttle_bar = lv_bar_create(primary_data);
     lv_obj_add_style(throttle_bar, &throttle_style, LV_PART_INDICATOR);
-    lv_obj_set_size(throttle_bar, 20, 150);  // Width, Height
+    lv_obj_set_size(throttle_bar, 20, 200);  // Width, Height
     lv_obj_align(throttle_bar, LV_ALIGN_LEFT_MID, 10, 0);  // Left center of screen with 10px margin
     lv_bar_set_range(throttle_bar, 0, 100);  // Throttle % from 0 to 100
     lv_bar_set_value(throttle_bar, 0, LV_ANIM_OFF);  // Initial value
@@ -202,10 +203,12 @@ void update_dashboard(uint16_t g_rpm, int g_gear, int g_speed, int g_fuel, int g
 
 void CAN_task(void *arg) {
     while (1) {
+        receive_can_message();  // No need to lock LVGL here
+
         if (lvgl_port_lock(-1)) {
             update_dashboard(g_rpm, g_gear, g_speed, g_fuel, g_temp, g_throttle);
             lvgl_port_unlock();
         }
-        vTaskDelay(pdMS_TO_TICKS(100)); // update every 100ms
+        vTaskDelay(pdMS_TO_TICKS(100));
     }
 }
