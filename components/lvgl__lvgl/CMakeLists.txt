@@ -6,6 +6,18 @@ endif()
 
 set(LVGL_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR})
 
+set(SOURCES
+    src/fonts/lv_font_montserrat_14.c
+    src/fonts/lv_font_montserrat_24.c
+    src/fonts/lv_font_montserrat_36.c
+    src/fonts/lv_font_montserrat_48.c
+)
+
+idf_component_register(SRCS ${SOURCES}
+                       INCLUDE_DIRS "include"
+                       REQUIRES lvgl
+)
+
 if(ESP_PLATFORM)
   include(${CMAKE_CURRENT_LIST_DIR}/env_support/cmake/esp.cmake)
 elseif(ZEPHYR_BASE)

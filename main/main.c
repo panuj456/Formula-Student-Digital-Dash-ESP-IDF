@@ -17,16 +17,18 @@
 #include "twai.h"
 
 static const char * TAG_MAIN = "MAIN";
-QueueHandle_t xECU; 
+//QueueHandle_t xECU; //commented out for testing
 
 void app_main()
 {
-    // Create Queue
+    // Create Queue - comment out for testing
+    /*
     xECU= xQueueCreate(1, sizeof(stats_t));
     if ( xECU == 0 ) {
         ESP_LOGE(TAG_MAIN,"Failed to create ECU queue= %p",xECU); // Failed to create the queue.
     }
-    configASSERT(xECU);
+        */
+    //configASSERT(xECU);
 
     waveshare_esp32_s3_rgb_lcd_init(); // Initialize the Waveshare ESP32-S3 RGB LCD 
     // wavesahre_rgb_lcd_bl_on();  //Turn on the screen backlight 
@@ -50,5 +52,5 @@ void app_main()
 
     }
 
-    xTaskCreatePinnedToCore(CAN_INIT, "CAN Task", 4096, NULL, 5, NULL, 1); // Runs on Core 1
+    //xTaskCreatePinnedToCore(CAN_INIT, "CAN Task", 4096, NULL, 5, NULL, 1); // Runs on Core 1 - comment out for testing
 }
