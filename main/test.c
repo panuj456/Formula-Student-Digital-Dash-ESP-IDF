@@ -1,4 +1,8 @@
-#include "lvgl.h"
+#include "test.h"
+#include "lvgl.h"                     // For LVGL functions
+#include "lvgl_port.h"               // For lvgl_port_lock/unlock (project specific)
+#include "freertos/FreeRTOS.h"       // For vTaskDelay and pdMS_TO_TICKS
+#include "freertos/task.h"
 
 
 
@@ -18,11 +22,11 @@ static lv_obj_t *fuel_bar;
 static lv_obj_t *temp_bar;
 static lv_obj_t *canvas;
 static lv_obj_t *rpm_value;
+static lv_obj_t *throttle_bar;
 
-static void update_dashboard(uint16_t g_rpm, int g_gear, int g_speed, int g_fuel, int g_temp);
-static void dash_create2(void);
-static void CAN_task(void *arg);
-static void create_canvas();
+void update_dashboard(uint16_t g_rpm, int g_gear, int g_speed, int g_fuel, int g_temp, int g_throttle);
+void dash_create2(void);
+void CAN_task(void *arg);
 
 // Make sure you’ve got these fonts enabled in your lv_conf.h
 LV_FONT_DECLARE(lv_font_montserrat_48);
@@ -58,6 +62,20 @@ void dash_create2(void)
     lv_obj_set_style_arc_width(rpm_arc, 20, 0);
     lv_arc_set_bg_angles(rpm_arc, 135, 45); // For a gauge style arc
     */
+
+    // Create a style for the throttle bar (optional)
+    static lv_style_t throttle_style;
+    lv_style_init(&throttle_style);
+    lv_style_set_bg_color(&throttle_style, lv_color_hex(0x00FF00));  // Green fill
+    lv_style_set_radius(&throttle_style, 5);
+
+    // Create the bar
+    throttle_bar = lv_bar_create(primary_data);
+    lv_obj_add_style(throttle_bar, &throttle_style, LV_PART_INDICATOR);
+    lv_obj_set_size(throttle_bar, 20, 150);  // Width, Height
+    lv_obj_align(throttle_bar, LV_ALIGN_LEFT_MID, 10, 0);  // Left center of screen with 10px margin
+    lv_bar_set_range(throttle_bar, 0, 100);  // Throttle % from 0 to 100
+    lv_bar_set_value(throttle_bar, 0, LV_ANIM_OFF);  // Initial value
     
     rpm_bar = lv_bar_create(primary_data);
     lv_obj_set_size(rpm_bar, 475, 50);
@@ -107,7 +125,7 @@ void dash_create2(void)
     lv_obj_set_style_text_color(speed_label, lv_palette_main(LV_PALETTE_BLUE), 0);
     lv_obj_set_style_bg_color(speed_label, lv_color_black(), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(speed_label, LV_OPA_COVER, LV_PART_MAIN);   
-    lv_label_set_text(speed_label, "0");
+    lv_label_set_text(speed_label, "000");
     lv_obj_align(speed_label, LV_ALIGN_BOTTOM_MID, 0, -50);
     lv_obj_t *kmh_label = lv_label_create(primary_data);
     lv_obj_set_style_text_font(kmh_label, &lv_font_montserrat_16, 0);
@@ -145,7 +163,10 @@ void dash_create2(void)
 }
 
 // Example function called periodically:
-void update_dashboard(uint16_t g_rpm, int g_gear, int g_speed, int g_fuel, int g_temp) { //update peripheral
+void update_dashboard(uint16_t g_rpm, int g_gear, int g_speed, int g_fuel, int g_temp, int g_throttle) { //update peripheral
+    //throttle position
+    lv_bar_set_value(throttle_bar, g_throttle, LV_ANIM_ON);
+    
     // --- RPM ---
     if (g_rpm > 12000) g_rpm = 12000;
     // Map RPM to arc value (assuming arc max is 100)
@@ -168,7 +189,7 @@ void update_dashboard(uint16_t g_rpm, int g_gear, int g_speed, int g_fuel, int g
     lv_label_set_text_fmt(gear_label, gear_text);  // Show gear as digit (or replace with "N" if gear == 0 etc.)
 
     // --- Speed ---
-    lv_label_set_text_fmt(speed_label, "%3d", g_speed);
+    lv_label_set_text_fmt(speed_label, "%03d", g_speed);
 
     // update more values
 
@@ -182,7 +203,7 @@ void update_dashboard(uint16_t g_rpm, int g_gear, int g_speed, int g_fuel, int g
 void CAN_task(void *arg) {
     while (1) {
         if (lvgl_port_lock(-1)) {
-            update_dashboard(g_rpm, g_gear, g_speed, g_fuel, g_temp);
+            update_dashboard(g_rpm, g_gear, g_speed, g_fuel, g_temp, g_throttle);
             lvgl_port_unlock();
         }
         vTaskDelay(pdMS_TO_TICKS(100)); // update every 100ms

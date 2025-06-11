@@ -26,13 +26,14 @@ volatile int g_gear = 0;
 volatile int g_speed = 0;
 volatile int g_temp = 0;
 volatile int g_fuel = 0;
+volatile int g_throttle = 0;
 
 void app_main()
 {
     // Create Queue - comment out for testing
     /*xECU= xQueueCreate(1, sizeof(stats_t));
     if ( xECU == 0 ) {*/
-    xECU = xQueueCreate(10, sizeof(uint8_t));
+    xECU = xQueueCreate(20, sizeof(uint8_t));
     if (xECU == NULL) {
         ESP_LOGE(TAG_MAIN,"Failed to create ECU queue= %p",xECU); // Failed to create the queue.
     }

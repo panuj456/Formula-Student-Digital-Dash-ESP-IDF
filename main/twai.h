@@ -30,6 +30,14 @@ typedef struct {
 	uint8_t Ignition_Switch_State;
 } stats_t;
 
+extern uint16_t g_rpm;
+extern volatile int g_gear;
+extern volatile int g_speed;
+extern volatile int g_temp;
+extern volatile int g_fuel;
+extern volatile int g_throttle;
+
+
 /*3E0 0-1 Coolant Temp, 6-7 Oil Temp
  
 470 7 Gear Position

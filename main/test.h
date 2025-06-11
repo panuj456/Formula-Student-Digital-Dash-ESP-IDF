@@ -15,8 +15,16 @@ static lv_obj_t *speed_label;
 static lv_obj_t *fuel_bar;
 static lv_obj_t *temp_bar;
 static lv_obj_t *canvas;
-extern lv_obj_t *canvas;
-extern lv_obj_t * obj;
+static lv_obj_t *canvas;
+static lv_obj_t * obj;
+
+extern uint16_t g_rpm;
+extern volatile int g_gear;
+extern volatile int g_speed;
+extern volatile int g_temp;
+extern volatile int g_fuel;
+extern volatile int g_throttle;
+
 
 void dash_create2();
 

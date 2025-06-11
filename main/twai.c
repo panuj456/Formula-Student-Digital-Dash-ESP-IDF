@@ -9,6 +9,7 @@ extern QueueHandle_t xECU;
 
 #include "twai.h"
 
+
 static const char * TWAI_TAG = "TWAI";
 
 void receive_can_message() { 
@@ -55,19 +56,20 @@ void receive_can_message() {
                 uint8_t Gear = received_msg.data[7];
                 const char *gear_text;
                 switch (Gear) {
-                    case 0: uint8_t g_gear = 0; break; //globals_used
-                    case 1: uint8_t g_gear = 1; break;
-                    case 2: uint8_t g_gear = 2; break;
-                    case 3: uint8_t g_gear = 3; break;
-                    case 4: uint8_t g_gear = 4; break;
-                    case 5: uint8_t g_gear = 5; break;
-                    case 6: uint8_t g_gear = 6; break;
+                    case 0: g_gear = 0; gear_text = "1st"; break;
+                    case 1: g_gear = 1; gear_text = "2nd"; break;
+                    case 2: g_gear = 2; gear_text = "3rd"; break;
+                    case 3: g_gear = 3; gear_text = "4th"; break;
+                    case 4: g_gear = 4; gear_text = "5th"; break;
+                    case 5: g_gear = 5; gear_text = "6th"; break;
+                    case 6: g_gear = 6; gear_text = "7th"; break;
                     default:
                         gear_text = "?";
-                        g_gear = -1;  // Invalid or unknown gear
+                        g_gear = -1;
                         ESP_LOGW(TWAI_TAG, "Unknown manual gear value: %d", Gear);
                         break;
                 }
+                ESP_LOGI(TWAI_TAG, "Manual Gear: %s", gear_text);
 
                 break;
                 
@@ -78,7 +80,8 @@ void receive_can_message() {
                 uint8_t rpm = (received_msg.data[0] << 8) | received_msg.data[1];
                 uint16_t g_rpm = (received_msg.data[0] << 8) | received_msg.data[1]; //globals_used
                 uint8_t throttlePosition = (received_msg.data[4] << 8) | received_msg.data[5];
-                    
+                uint8_t g_throttle = (received_msg.data[4] << 8) | received_msg.data[5];
+
                 // Perform computation for Throttle Position
                 float throttlePositionComp = throttlePosition / 10.0;
                     
@@ -140,7 +143,7 @@ void receive_can_message() {
                     ESP_LOGI(TWAI_TAG, "Ignition Switch State: Unknown");
                 }
 
-                if (xQueueSend(xECU, ignitionState , portMAX_DELAY ) != pdPASS) {
+                if (xQueueSend(xECU, &ignitionState , portMAX_DELAY ) != pdPASS) {
                     ESP_LOGE(TWAI_TAG, "xQueueSend Fail");
                 }
                 break;
