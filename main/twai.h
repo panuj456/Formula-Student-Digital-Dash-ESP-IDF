@@ -36,7 +36,7 @@ extern volatile int g_speed;
 extern volatile int g_temp;
 extern volatile int g_fuel;
 extern volatile int g_throttle;
-
+extern volatile int g_battery;
 
 /*3E0 0-1 Coolant Temp, 6-7 Oil Temp
  

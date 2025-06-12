@@ -17,13 +17,16 @@ extern volatile int g_temp;
 extern volatile int g_fuel;
 extern volatile int g_throttle;
 
+#define RX_GPIO_NUM 16
+#define TX_GPIO_NUM 15
+
 static const char * TWAI_TAG = "TWAI";
 
 void receive_can_message() { 
     twai_message_t received_msg;
 
     // Wait for a CAN message to be received
-    esp_err_t ret = twai_receive(&received_msg, 500 / portTICK_PERIOD_MS);
+    esp_err_t ret = twai_receive(&received_msg, 500 / portTICK_PERIOD_MS); //1000
     //esp_err_t ret = twai_receive(&received_msg, pdMS_TO_TICKS(10));
     if (ret == ESP_OK) {
         // Filter specific message IDs
@@ -131,6 +134,7 @@ void receive_can_message() {
                 uint16_t BatteryVoltage = (received_msg.data[0] << 8) | received_msg.data[1];
                 float BatteryVoltageComp = BatteryVoltage / 10.0;
                 ESP_LOGI(TWAI_TAG, "Battery Voltage: %d (Computed: %.2f)", BatteryVoltage, BatteryVoltageComp);
+                g_battery = BatteryVoltageComp;
                 break;
         
             case 1001: // Lambda (0x3E9)
@@ -183,13 +187,13 @@ void receive_can_message() {
     }
 }
 
-
+/*
 void CAN_INIT(void) {
     // Configure the TWAI driver for 1Mbps and 11-bit IDs
     twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT(TX_GPIO_NUM, RX_GPIO_NUM, TWAI_MODE_NORMAL);
 
     // Configure timing for 1MBit speed
-    twai_timing_config_t t_config = TWAI_TIMING_CONFIG_1MBITS();
+    twai_timing_config_t t_config = TWAI_TIMING_CONFIG_500KBITS();//1MBITS();
 
     // Set filter to 11-bit CAN IDs
     twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();  // Accept all IDs for now
@@ -202,4 +206,36 @@ void CAN_INIT(void) {
 
     ESP_LOGI(TWAI_TAG, "CAN driver installed and started.");
     
+}
+*/
+
+void CAN_INIT(void) {
+    // Setup CAN for 500 kbps, 29-bit extended IDs (Haltech uses extended IDs)
+    /*twai_general_config_t g_config = {
+        .mode = TWAI_MODE_NORMAL,
+        .tx_io = TX_GPIO_NUM,
+        .rx_io = RX_GPIO_NUM,
+        .clkout_io = TWAI_IO_UNUSED,
+        .bus_off_io = TWAI_IO_UNUSED,
+        .tx_queue_len = 5,
+        .rx_queue_len = 10,
+        .alerts_enabled = TWAI_ALERT_ALL,
+        .clkout_divider = 0
+    }; */
+
+    // Configure the TWAI driver for 1Mbps and 11-bit IDs
+    twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT(TX_GPIO_NUM, RX_GPIO_NUM, TWAI_MODE_NORMAL);
+
+    // Timing config for 500 kbps (typical for Haltech Elite)
+    twai_timing_config_t t_config = TWAI_TIMING_CONFIG_1MBITS();
+
+    // Filter config to accept all extended IDs (you can narrow this down if needed)
+    // Note: Acceptance filter is 29-bit extended IDs enabled here
+    // Set filter to 11-bit CAN IDs
+    twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();  // Accept all IDs for now
+
+    ESP_ERROR_CHECK(twai_driver_install(&g_config, &t_config, &f_config));
+    ESP_ERROR_CHECK(twai_start());
+
+    ESP_LOGI(TWAI_TAG, "CAN driver installed and started at 1MBIT, extended ID mode.");
 }

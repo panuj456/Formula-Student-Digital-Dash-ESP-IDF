@@ -24,11 +24,12 @@ extern volatile int g_speed;
 extern volatile int g_temp;
 extern volatile int g_fuel;
 extern volatile int g_throttle;
+extern volatile int g_battery;
 
 
 void dash_create2();
 void receive_can_message(void);
-void CAN_task(void);
+void CAN_task(void *pvParameters);
 void update_dashboard(void);
 
 

@@ -25,6 +25,7 @@ static lv_obj_t *canvas;
 static lv_obj_t *rpm_value;
 static lv_obj_t *throttle_bar;
 static lv_obj_t *throttle_label;
+static lv_obj_t *battery_label;
 
 extern uint16_t g_rpm;
 extern volatile int g_gear;
@@ -35,7 +36,7 @@ extern volatile int g_throttle;
 
 void update_dashboard(void);
 void dash_create2(void);
-void CAN_task(void);
+void CAN_task(void *pvParameters);
 
 // Make sure you’ve got these fonts enabled in your lv_conf.h
 LV_FONT_DECLARE(lv_font_montserrat_48);
@@ -149,6 +150,15 @@ void dash_create2(void)
     lv_label_set_text(kmh_label, "KM/H");
     lv_obj_align(kmh_label, LV_ALIGN_BOTTOM_MID, 50, -50);
 
+    // Battery label
+    battery_label = lv_label_create(primary_data);
+    lv_obj_set_style_text_font(battery_label, &lv_font_montserrat_16, 0);
+    lv_obj_set_style_text_color(battery_label, lv_palette_main(LV_PALETTE_GREEN), 0);
+    lv_obj_set_style_bg_color(battery_label, lv_color_black(), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(battery_label, LV_OPA_COVER, LV_PART_MAIN);
+    lv_label_set_text(battery_label, "0");
+    lv_obj_align(battery_label, LV_ALIGN_BOTTOM_RIGHT, -10, -10);
+
 
     // Page 2: secondary data
     lv_obj_t *secondary_data = lv_obj_create(main_container);
@@ -202,6 +212,8 @@ void update_dashboard(void) { //update peripheral
     // --- Speed ---
     lv_label_set_text_fmt(speed_label, "%03d", g_speed);
 
+    lv_label_set_text_fmt(battery_label, "%02d", g_battery);
+
     // update more values
 
     // --- Fuel ---
@@ -211,7 +223,7 @@ void update_dashboard(void) { //update peripheral
     //lv_bar_set_value(temp_bar, g_temp, LV_ANIM_ON);
 }
 
-void CAN_task(void) {
+void CAN_task(void *pvParameters) {
     while (1) {
         receive_can_message();  // No need to lock LVGL here
 
@@ -219,6 +231,6 @@ void CAN_task(void) {
             update_dashboard(); //since using globals no need for params
             lvgl_port_unlock();
         }
-        vTaskDelay(pdMS_TO_TICKS(100));
+        vTaskDelay(pdMS_TO_TICKS(100)); //100
     }
 }

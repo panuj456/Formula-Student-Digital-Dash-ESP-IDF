@@ -146,7 +146,7 @@ esp_err_t waveshare_esp32_s3_rgb_lcd_init()
     ESP_LOGI(TAG, "Initialize I2C panel IO"); // Log I2C panel I/O initialization
     ESP_ERROR_CHECK(esp_lcd_new_panel_io_i2c((esp_lcd_i2c_bus_handle_t)I2C_MASTER_NUM, &tp_io_config, &tp_io_handle)); // Create new I2C panel I/O
 
-    ESP_LOGI(TAG, "Initialize touch controller GT911"); // Log touch controller initialization
+    ESP_LOGI(TAG, "Initialize touch controller GT911"); // Log touch controller initialization - some sort of error here
     const esp_lcd_touch_config_t tp_cfg = {
         .x_max = EXAMPLE_LCD_H_RES, // Set maximum X coordinate
         .y_max = EXAMPLE_LCD_V_RES, // Set maximum Y coordinate

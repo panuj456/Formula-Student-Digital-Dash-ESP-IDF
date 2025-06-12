@@ -18,7 +18,7 @@
 
 static const char * TAG_MAIN = "MAIN";
 QueueHandle_t xECU; //commented out for testing
-extern void CAN_task(void);
+extern void CAN_task(void *pvParameters);
 extern void CAN_INIT();
 
 //global shared variables - can be a struct
@@ -28,6 +28,7 @@ volatile int g_speed = 0;
 volatile int g_temp = 0;
 volatile int g_fuel = 0;
 volatile int g_throttle = 0;
+volatile int g_battery = 0;
 
 void app_main()
 {
@@ -45,18 +46,15 @@ void app_main()
     // wavesahre_rgb_lcd_bl_on();  //Turn on the screen backlight 
     // wavesahre_rgb_lcd_bl_off(); //Turn off the screen backlight 
     
-    ESP_LOGI(TAG_MAIN, "Display LVGL demos");
+    ESP_LOGI(TAG_MAIN, "LVGL display initialisation");
     // Lock the mutex due to the LVGL APIs are not thread-safe
     if (lvgl_port_lock(-1)) {
+        dash_create2();
         // Release the mutex
         lvgl_port_unlock();
 
-        ESP_LOGI(TAG_MAIN, "First LVGL function");
-        dash_create2();
-        CAN_INIT();
-
     }
-
+    CAN_INIT();
     //xTaskCreatePinnedToCore(CAN_INIT, "CAN Task", 4096, NULL, 5, NULL, 1); // Runs on Core 1 - comment out for testing
-    xTaskCreatePinnedToCore(CAN_task, "Dashboard Task", 4096, NULL, 4, NULL, 1);
+    xTaskCreatePinnedToCore(CAN_task, "Dashboard Task", 4096, NULL, 5, NULL, 1);
 }
