@@ -24,10 +24,18 @@ static lv_obj_t *temp_bar;
 static lv_obj_t *canvas;
 static lv_obj_t *rpm_value;
 static lv_obj_t *throttle_bar;
+static lv_obj_t *throttle_label;
 
-void update_dashboard(uint16_t g_rpm, int g_gear, int g_speed, int g_fuel, int g_temp, int g_throttle);
+extern uint16_t g_rpm;
+extern volatile int g_gear;
+extern volatile int g_speed;
+extern volatile int g_temp;
+extern volatile int g_fuel;
+extern volatile int g_throttle;
+
+void update_dashboard(void);
 void dash_create2(void);
-void CAN_task(void *arg);
+void CAN_task(void);
 
 // Make sure you’ve got these fonts enabled in your lv_conf.h
 LV_FONT_DECLARE(lv_font_montserrat_48);
@@ -73,10 +81,17 @@ void dash_create2(void)
     // Create the bar
     throttle_bar = lv_bar_create(primary_data);
     lv_obj_add_style(throttle_bar, &throttle_style, LV_PART_INDICATOR);
-    lv_obj_set_size(throttle_bar, 20, 200);  // Width, Height
+    lv_obj_set_size(throttle_bar, 30, 300);  // Width, Height
+    lv_obj_set_style_bg_color(throttle_bar, lv_color_black(), 0);
+    lv_obj_set_style_border_width(throttle_bar, 10, 0);
     lv_obj_align(throttle_bar, LV_ALIGN_LEFT_MID, 10, 0);  // Left center of screen with 10px margin
     lv_bar_set_range(throttle_bar, 0, 100);  // Throttle % from 0 to 100
     lv_bar_set_value(throttle_bar, 0, LV_ANIM_OFF);  // Initial value
+    // Create a label for throttle
+    throttle_label = lv_label_create(primary_data);
+    lv_obj_set_style_text_font(throttle_label, &lv_font_montserrat_12, 0);
+    lv_label_set_text(throttle_label, "Throttle");
+    lv_obj_align_to(throttle_label, throttle_bar, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);  // 5px below the bar
     
     rpm_bar = lv_bar_create(primary_data);
     lv_obj_set_size(rpm_bar, 475, 50);
@@ -159,12 +174,12 @@ void dash_create2(void)
     // Oil Pressure Label
     lv_obj_t *oil_pressure_label = lv_label_create(secondary_data);
     lv_obj_set_style_text_font(oil_pressure_label, &lv_font_montserrat_24, 0);
-    lv_label_set_text(oil_pressure_label, "Oil Pressure:\n3.2 Bar");
+    lv_label_set_text(oil_pressure_label, "Oil Pressure");
     lv_obj_align(oil_pressure_label, LV_ALIGN_TOP_MID, 0, 80);
 }
 
 // Example function called periodically:
-void update_dashboard(uint16_t g_rpm, int g_gear, int g_speed, int g_fuel, int g_temp, int g_throttle) { //update peripheral
+void update_dashboard(void) { //update peripheral
     //throttle position
     lv_bar_set_value(throttle_bar, g_throttle, LV_ANIM_ON);
     
@@ -176,18 +191,13 @@ void update_dashboard(uint16_t g_rpm, int g_gear, int g_speed, int g_fuel, int g
 
     // --- Gear ---
     // Gear text
-    const char *gear_text;
-    switch (g_gear) {
-        case 0: gear_text = "N"; break;
-        case 1: gear_text = "1"; break;
-        case 2: gear_text = "2"; break;
-        case 3: gear_text = "3"; break;
-        case 4: gear_text = "4"; break;
-        case 5: gear_text = "5"; break;
-        case 6: gear_text = "6"; break;
-        default: gear_text = "?"; break;
-    }
-    lv_label_set_text_fmt(gear_label, gear_text);  // Show gear as digit (or replace with "N" if gear == 0 etc.)
+    if (gear_label != NULL && lv_obj_is_valid(gear_label)) {
+        if (g_gear == 0) {
+            lv_label_set_text(gear_label, "N");
+        } else {
+            lv_label_set_text_fmt(gear_label, "%d", g_gear);
+        }
+    } // Show gear as digit (or replace with "N" if gear == 0 etc.)
 
     // --- Speed ---
     lv_label_set_text_fmt(speed_label, "%03d", g_speed);
@@ -195,18 +205,18 @@ void update_dashboard(uint16_t g_rpm, int g_gear, int g_speed, int g_fuel, int g
     // update more values
 
     // --- Fuel ---
-    lv_bar_set_value(fuel_bar, g_fuel, LV_ANIM_ON);
+    //lv_bar_set_value(fuel_bar, g_fuel, LV_ANIM_ON);
 
     // --- Coolant Temp ---
-    lv_bar_set_value(temp_bar, g_temp, LV_ANIM_ON);
+    //lv_bar_set_value(temp_bar, g_temp, LV_ANIM_ON);
 }
 
-void CAN_task(void *arg) {
+void CAN_task(void) {
     while (1) {
         receive_can_message();  // No need to lock LVGL here
 
         if (lvgl_port_lock(-1)) {
-            update_dashboard(g_rpm, g_gear, g_speed, g_fuel, g_temp, g_throttle);
+            update_dashboard(); //since using globals no need for params
             lvgl_port_unlock();
         }
         vTaskDelay(pdMS_TO_TICKS(100));

@@ -18,7 +18,7 @@
 
 static const char * TAG_MAIN = "MAIN";
 QueueHandle_t xECU; //commented out for testing
-extern void CAN_task(void *arg);
+extern void CAN_task(void);
 extern void CAN_INIT();
 
 //global shared variables - can be a struct
@@ -34,7 +34,7 @@ void app_main()
     // Create Queue - comment out for testing
     /*xECU= xQueueCreate(1, sizeof(stats_t));
     if ( xECU == 0 ) {*/
-    xECU = xQueueCreate(1, sizeof(uint8_t)); //uint8_t
+    xECU = xQueueCreate(1, sizeof(stats_t)); //uint8_t
     if (xECU == NULL) {
         ESP_LOGE(TAG_MAIN,"Failed to create ECU queue= %p",xECU); // Failed to create the queue.
     }
@@ -53,6 +53,7 @@ void app_main()
 
         ESP_LOGI(TAG_MAIN, "First LVGL function");
         dash_create2();
+        CAN_INIT();
 
     }
 

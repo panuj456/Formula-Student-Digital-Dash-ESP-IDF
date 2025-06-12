@@ -10,23 +10,29 @@ extern QueueHandle_t xECU;
 #include "twai.h"
 #include <inttypes.h> 
 
+extern uint16_t g_rpm;
+extern volatile int g_gear;
+extern volatile int g_speed;
+extern volatile int g_temp;
+extern volatile int g_fuel;
+extern volatile int g_throttle;
+
 static const char * TWAI_TAG = "TWAI";
 
 void receive_can_message() { 
     twai_message_t received_msg;
 
     // Wait for a CAN message to be received
-    //esp_err_t ret = twai_receive(&received_msg, 1000 / portTICK_PERIOD_MS);
-    esp_err_t ret = twai_receive(&received_msg, pdMS_TO_TICKS(10));
-    
+    esp_err_t ret = twai_receive(&received_msg, 500 / portTICK_PERIOD_MS);
+    //esp_err_t ret = twai_receive(&received_msg, pdMS_TO_TICKS(10));
     if (ret == ESP_OK) {
         // Filter specific message IDs
         switch (received_msg.identifier) {
             case 992:  // Coolant Temp (0x3E0)
                 ESP_LOGI(TWAI_TAG, "Message received: ID=%03X", (unsigned int)received_msg.identifier);
-                uint8_t CoolantTemp = (received_msg.data[0] << 8) | received_msg.data[1];
+                uint16_t CoolantTemp = (received_msg.data[0] << 8) | received_msg.data[1];
                 float CoolantTempComp =  CoolantTemp /10;
-                uint8_t OilTemp = (received_msg.data[6] << 8) | received_msg.data[7];
+                uint16_t OilTemp = (received_msg.data[6] << 8) | received_msg.data[7];
                 float OilTempComp = OilTemp/10;
                 ESP_LOGI(TWAI_TAG, "Coolant Temp: %d (Computed: %.2f)", CoolantTemp, CoolantTempComp);
                 ESP_LOGI(TWAI_TAG, "Oil Temp: %d (Computed: %.2f)", OilTemp, OilTempComp);
@@ -34,7 +40,7 @@ void receive_can_message() {
         
             case 1136: // GearSelectorPosition (0x470)
                 ESP_LOGI(TWAI_TAG, "Message received: ID=%03X", (unsigned int)received_msg.identifier);
-                uint8_t GearSelectorPosition = received_msg.data[6];
+                uint16_t GearSelectorPosition = received_msg.data[6];
                 if (GearSelectorPosition == 0) {
                     ESP_LOGI(TWAI_TAG, "Neutral");
                 } else if (GearSelectorPosition == 1) {
@@ -55,16 +61,16 @@ void receive_can_message() {
                     ESP_LOGI(TWAI_TAG, "Gear Selector Position: %d", GearSelectorPosition);
                 }
 
-                uint8_t Gear = received_msg.data[7];
+                uint16_t Gear = received_msg.data[7];
                 const char *gear_text;
                 switch (Gear) {
-                    case 0: g_gear = 0; gear_text = "1st"; break;
-                    case 1: g_gear = 1; gear_text = "2nd"; break;
-                    case 2: g_gear = 2; gear_text = "3rd"; break;
-                    case 3: g_gear = 3; gear_text = "4th"; break;
-                    case 4: g_gear = 4; gear_text = "5th"; break;
-                    case 5: g_gear = 5; gear_text = "6th"; break;
-                    case 6: g_gear = 6; gear_text = "7th"; break;
+                    case 0: g_gear = 0; gear_text = "N"; break;
+                    case 1: g_gear = 1; gear_text = "1st"; break;
+                    case 2: g_gear = 2; gear_text = "2nd"; break;
+                    case 3: g_gear = 3; gear_text = "3rd"; break;
+                    case 4: g_gear = 4; gear_text = "4th"; break;
+                    case 5: g_gear = 5; gear_text = "5th"; break;
+                    case 6: g_gear = 6; gear_text = "6th"; break;
                     default:
                         gear_text = "?";
                         g_gear = -1;
@@ -79,10 +85,10 @@ void receive_can_message() {
             case 864:  // RPM, Throttle Position (0x360)
                 ESP_LOGI(TWAI_TAG, "Message received: ID=%03X", (unsigned int)received_msg.identifier);
                 // Extract RPM and Throttle Position
-                uint8_t rpm = (received_msg.data[0] << 8) | received_msg.data[1];
-                uint16_t g_rpm = (received_msg.data[0] << 8) | received_msg.data[1]; //globals_used
-                uint8_t throttlePosition = (received_msg.data[4] << 8) | received_msg.data[5];
-                uint8_t g_throttle = (received_msg.data[4] << 8) | received_msg.data[5];
+                uint16_t rpm = (received_msg.data[0] << 8) | received_msg.data[1];
+                g_rpm = (received_msg.data[0] << 8) | received_msg.data[1]; //globals_used
+                uint16_t throttlePosition = (received_msg.data[4] << 8) | received_msg.data[5];
+                g_throttle = (received_msg.data[4] << 8) | received_msg.data[5];
 
                 // Perform computation for Throttle Position
                 float throttlePositionComp = throttlePosition / 10.0;
@@ -94,8 +100,8 @@ void receive_can_message() {
             case 865:  // Fuel Pressure (0x361)
                 ESP_LOGI(TWAI_TAG, "Message received: ID=%03X", (unsigned int)received_msg.identifier);
                 // Extract Fuel Pressure and Oil Pressure
-                uint8_t fuelPressure = (received_msg.data[0] << 8) | received_msg.data[1];
-                uint8_t oilPressure = (received_msg.data[2] << 8) | received_msg.data[3];
+                uint16_t fuelPressure = (received_msg.data[0] << 8) | received_msg.data[1];
+                uint16_t oilPressure = (received_msg.data[2] << 8) | received_msg.data[3];
                     
                 // Perform computation for Fuel Pressure
                 float fuelPressureComp = fuelPressure / 10.0 - 101.3;
@@ -107,14 +113,14 @@ void receive_can_message() {
         
             case 875:  // Brake Pressure Sensor (0x36B)
                 ESP_LOGI(TWAI_TAG, "Message received: ID=%03X", (unsigned int)received_msg.identifier);
-                uint8_t BrakePressureSensor =  (received_msg.data[0] << 8) | received_msg.data[1];
+                uint16_t BrakePressureSensor =  (received_msg.data[0] << 8) | received_msg.data[1];
                 float BrakePressureSensorComp = BrakePressureSensor - 101.3;
                 ESP_LOGI(TWAI_TAG, "Brake Pressure Sensor: %d (Computed: %.2f)", BrakePressureSensor, BrakePressureSensorComp);
                 break;
         
             case 880:  // Vehicle Speed (0x370)
                 ESP_LOGI(TWAI_TAG, "Message received: ID=%03X", (unsigned int)received_msg.identifier);
-                uint8_t VehicleSpeed = (received_msg.data[0] << 8) | received_msg.data[1];
+                uint16_t VehicleSpeed = (received_msg.data[0] << 8) | received_msg.data[1];
                 g_speed = VehicleSpeed;//globals_used
                 float VehicleSpeedComp = VehicleSpeed / 10.0;
                 ESP_LOGI(TWAI_TAG, "Vehicle Speed: %d (Computed: %.2f)", VehicleSpeed, VehicleSpeedComp);
@@ -122,14 +128,14 @@ void receive_can_message() {
         
             case 882:  // Battery Voltage (0x372)
                 ESP_LOGI(TWAI_TAG, "Message received: ID=%03X", (unsigned int)received_msg.identifier);
-                uint8_t BatteryVoltage = (received_msg.data[0] << 8) | received_msg.data[1];
+                uint16_t BatteryVoltage = (received_msg.data[0] << 8) | received_msg.data[1];
                 float BatteryVoltageComp = BatteryVoltage / 10.0;
                 ESP_LOGI(TWAI_TAG, "Battery Voltage: %d (Computed: %.2f)", BatteryVoltage, BatteryVoltageComp);
                 break;
         
             case 1001: // Lambda (0x3E9)
                 ESP_LOGI(TWAI_TAG, "Message received: ID=%03X", (unsigned int)received_msg.identifier);
-                uint8_t Lambda = (received_msg.data[4] << 8) | received_msg.data[5];
+                uint16_t Lambda = (received_msg.data[4] << 8) | received_msg.data[5];
                 float LambdaComp = Lambda / 1000.0;
                 ESP_LOGI(TWAI_TAG, "Lambda: %d (Computed: %.2f)", Lambda, LambdaComp);
                 break;
@@ -157,6 +163,7 @@ void receive_can_message() {
     } else {
         if (ret == ESP_ERR_TIMEOUT) {
             // No message — expected occasionally
+            ESP_LOGW(TWAI_TAG, "No message - Time out");
         } else {
             // Something is wrong, check bus status
             twai_status_info_t status;
@@ -166,14 +173,18 @@ void receive_can_message() {
             uint32_t rx_error = status.rx_error_counter;  // Example placeholder
             uint32_t tx_error = status.tx_error_counter;  // Example placeholder
 
-            ESP_LOGW(TWAI_TAG, "Receive failed: %s | ESP err: %s | RX err: %" PRIu32 " | TX err: %" PRIu32 " | State: %" PRIu32,
-         some_string, esp_err_str, rx_error, tx_error, status.state);
+            ESP_LOGW(TWAI_TAG,
+            "Receive failed: %s | ESP err: %s | RX err: %" PRIu32 " | TX err: %" PRIu32 " | State: %" PRIu32,
+            some_string, esp_err_str,
+            (uint32_t)rx_error,
+            (uint32_t)tx_error,
+            (uint32_t)status.state);
         }
     }
 }
 
 
-void CAN_INIT(void *arg) {
+void CAN_INIT(void) {
     // Configure the TWAI driver for 1Mbps and 11-bit IDs
     twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT(TX_GPIO_NUM, RX_GPIO_NUM, TWAI_MODE_NORMAL);
 
