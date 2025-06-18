@@ -16,6 +16,7 @@ extern volatile int g_speed;
 extern volatile int g_temp;
 extern volatile int g_fuel;
 extern volatile int g_throttle;
+extern volatile int g_battery;
 
 #define RX_GPIO_NUM 16
 #define TX_GPIO_NUM 15
@@ -28,7 +29,18 @@ void receive_can_message() {
     // Wait for a CAN message to be received
     esp_err_t ret = twai_receive(&received_msg, 500 / portTICK_PERIOD_MS); //1000
     //esp_err_t ret = twai_receive(&received_msg, pdMS_TO_TICKS(10));
+    twai_status_info_t status;
+    twai_get_status_info(&status);
+    ESP_LOGI("TWAI", "TX ERR: %u, RX ERR: %u, State: %u",
+            (unsigned int)status.tx_error_counter,
+            (unsigned int)status.rx_error_counter,
+            (unsigned int)status.state,
+            (unsigned int)status.rx_msg_cnt
+        );    
     if (ret == ESP_OK) {
+        if (received_msg.extd) {
+            ESP_LOGI(TWAI_TAG, "Extended frame ID: %08X", (unsigned int)received_msg.identifier); //check for extended messages
+        }
         // Filter specific message IDs
         switch (received_msg.identifier) {
             case 992:  // Coolant Temp (0x3E0)
@@ -225,6 +237,9 @@ void CAN_INIT(void) {
 
     // Configure the TWAI driver for 1Mbps and 11-bit IDs
     twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT(TX_GPIO_NUM, RX_GPIO_NUM, TWAI_MODE_NORMAL);
+
+    // Increase RX queue length from default (32) to 64 (or any desired value)
+    g_config.rx_queue_len = 128;
 
     // Timing config for 500 kbps (typical for Haltech Elite)
     twai_timing_config_t t_config = TWAI_TIMING_CONFIG_1MBITS();

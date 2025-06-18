@@ -33,6 +33,7 @@ extern volatile int g_speed;
 extern volatile int g_temp;
 extern volatile int g_fuel;
 extern volatile int g_throttle;
+extern volatile int g_battery;
 
 void update_dashboard(void);
 void dash_create2(void);
