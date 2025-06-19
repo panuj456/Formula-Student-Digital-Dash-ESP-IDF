@@ -34,8 +34,7 @@ void receive_can_message() {
     ESP_LOGI("TWAI", "TX ERR: %u, RX ERR: %u, State: %u",
             (unsigned int)status.tx_error_counter,
             (unsigned int)status.rx_error_counter,
-            (unsigned int)status.state,
-            (unsigned int)status.rx_msg_cnt
+            (unsigned int)status.state
         );    
     if (ret == ESP_OK) {
         if (received_msg.extd) {
