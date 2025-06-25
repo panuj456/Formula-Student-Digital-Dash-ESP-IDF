@@ -5,7 +5,7 @@
 #include "freertos/task.h"
 #include "twai.h"
 
-
+extern QueueHandle_t xECU;
 
 // Declare the fonts (this makes sure linker knows about them)
 LV_FONT_DECLARE(lv_font_montserrat_36);
@@ -27,17 +27,6 @@ static lv_obj_t *throttle_bar;
 static lv_obj_t *throttle_label;
 static lv_obj_t *battery_label;
 
-extern uint16_t g_rpm;
-extern volatile int g_gear;
-extern volatile int g_speed;
-extern volatile int g_temp;
-extern volatile int g_fuel;
-extern volatile int g_throttle;
-extern volatile int g_battery;
-
-void update_dashboard(void);
-void dash_create2(void);
-void CAN_task(void *pvParameters);
 
 // Make sure you’ve got these fonts enabled in your lv_conf.h
 LV_FONT_DECLARE(lv_font_montserrat_48);
@@ -190,6 +179,7 @@ void dash_create2(void)
 }
 
 // Example function called periodically:
+/*
 void update_dashboard(void) { //update peripheral
     //throttle position
     lv_bar_set_value(throttle_bar, g_throttle, LV_ANIM_ON);
@@ -223,13 +213,156 @@ void update_dashboard(void) { //update peripheral
     // --- Coolant Temp ---
     //lv_bar_set_value(temp_bar, g_temp, LV_ANIM_ON);
 }
+*/
+void decode_and_dispatch() {
+    uint16_t id;
+    float f1, f2;
 
-void CAN_task(void *pvParameters) {
+    float coolant_temp;
+    float oil_temp;
+    uint16_t selector_position;
+    int8_t gear;
+    uint16_t rpm;
+    float throttle;
+    float fuel_pressure;
+    float oil_pressure;
+    float brake_pressure;
+    float vehicle_speed;
+    float battery_voltage;
+    float lambda;
+
+    uint8_t ignition_state;
+
+    can_message_t msg;
+
+    // Attempt to receive a message from the ECU queue
+    if (!xQueueReceive(xECU, &msg, 0)) {
+        return;  // no message received, return early
+    }
+    void *fields[2] = { &f1, &f2 };
+    const uint8_t *buffer = msg.data;
+    id = decode_message(buffer, fields);
+
+    printf("Received CAN ID: %d, f1=%.2f, f2=%.2f\n", id, f1, f2);
+
+    switch (id) {
+        case 992: // coolant and oil temp
+            coolant_temp = f1;
+            oil_temp = f2;
+            break;
+
+        case 1136: { // selector and gear
+            uint16_t selector = *(uint16_t*)&f1;
+            int8_t gear_val = (int8_t)f2;
+            selector_position = selector;
+            gear = gear_val;
+
+            if (lv_obj_is_valid(gear_label)) {
+                if (gear_val == 0)
+                    lv_label_set_text(gear_label, "N");
+                else
+                    lv_label_set_text_fmt(gear_label, "%d", gear_val);
+            }
+            break;
+        }
+
+        case 864: { // rpm and throttle
+            uint16_t rpm_val = *(uint16_t*)&f1;
+            float throttle_val = f2;
+            rpm = rpm_val;
+            throttle = throttle_val;
+
+            if (rpm_val > 12000) rpm_val = 12000;
+            lv_bar_set_value(rpm_bar, rpm_val, LV_ANIM_ON);
+            lv_label_set_text_fmt(rpm_label, "%05d", rpm_val);
+            lv_bar_set_value(throttle_bar, throttle_val, LV_ANIM_ON);
+            break;
+        }
+
+        case 865: // fuel and oil pressure
+            fuel_pressure = f1;
+            oil_pressure = f2;
+            break;
+
+        case 875: // brake
+            brake_pressure = f1;
+            break;
+
+        case 880: // speed
+            vehicle_speed = f1;
+            lv_label_set_text_fmt(speed_label, "%.1f", f1); // or %.0f if integer
+            break;
+
+        case 882: // battery
+            battery_voltage = f1;
+            lv_label_set_text_fmt(battery_label, "%.2f", f1);
+            break;
+
+        case 1001: // lambda
+            lambda = f1;
+            break;
+
+        case 997: // ignition
+            ignition_state = (uint8_t)f1;
+            break;
+
+        default:
+            break;
+    }
+}
+
+
+size_t decode_message(const uint8_t *buffer, void *fields_out[]) {
+    size_t offset = 0;
+
+    // Read message ID (2 bytes)
+    uint16_t message_id = (buffer[offset] << 8) | buffer[offset + 1];
+    offset += 2;
+
+    // Find message definition
+    const message_def_t *def = NULL;
+    for (size_t i = 0; i < message_defs_count; i++) {
+        if (message_defs[i].message_id == message_id) {
+            def = &message_defs[i];
+            break;
+        }
+    }
+    if (!def) return 0; // unknown message
+
+    // Decode each expected field
+    for (size_t i = 0; i < MAX_FIELDS; i++) {
+        if (i < def->field_count) {
+            switch (def->fields[i]) {
+                case FIELD_UINT8:
+                    *(uint8_t*)fields_out[i] = buffer[offset++];
+                    break;
+                case FIELD_INT8:
+                    *(int8_t*)fields_out[i] = (int8_t)buffer[offset++];
+                    break;
+                case FIELD_UINT16:
+                    *(uint16_t*)fields_out[i] = (buffer[offset] << 8) | buffer[offset + 1];
+                    offset += 2;
+                    break;
+                case FIELD_FLOAT:
+                    memcpy(fields_out[i], buffer + offset, sizeof(float));
+                    offset += sizeof(float);
+                    break;
+            }
+        } else {
+            // Skip padded zeros (all float sized)
+            offset += sizeof(float);
+        }
+    }
+
+    return message_id;
+}
+
+void Display_Task(void *pvParameters) {
     while (1) {
-        receive_can_message();  // No need to lock LVGL here
+        decode_and_dispatch();
 
         if (lvgl_port_lock(-1)) {
-            update_dashboard(); //since using globals no need for params
+            //update_dashboard(); //since using globals no need for params
             lvgl_port_unlock();
         }
         vTaskDelay(pdMS_TO_TICKS(100)); //100

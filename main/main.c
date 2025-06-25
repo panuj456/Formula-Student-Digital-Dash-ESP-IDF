@@ -21,21 +21,16 @@ QueueHandle_t xECU; //commented out for testing
 extern void CAN_task(void *pvParameters);
 extern void CAN_INIT();
 
-//global shared variables - can be a struct
-uint16_t g_rpm = 0;
-volatile int g_gear = 0;
-volatile int g_speed = 0;
-volatile int g_temp = 0;
-volatile int g_fuel = 0;
-volatile int g_throttle = 0;
-volatile int g_battery = 0;
+
+#define CAN_MSG_SIZE (sizeof(can_message_t))
+
 
 void app_main()
 {
     // Create Queue - comment out for testing
     /*xECU= xQueueCreate(1, sizeof(stats_t));
     if ( xECU == 0 ) {*/
-    xECU = xQueueCreate(1, sizeof(stats_t)); //uint8_t
+    xECU = xQueueCreate(1, CAN_MSG_SIZE); //uint8_t
     if (xECU == NULL) {
         ESP_LOGE(TAG_MAIN,"Failed to create ECU queue= %p",xECU); // Failed to create the queue.
     }
@@ -56,5 +51,6 @@ void app_main()
     }
     CAN_INIT();
     //xTaskCreatePinnedToCore(CAN_INIT, "CAN Task", 4096, NULL, 5, NULL, 1); // Runs on Core 1 - comment out for testing
-    xTaskCreatePinnedToCore(CAN_task, "Dashboard Task", 8192, NULL, 5, NULL, 1);
+    xTaskCreate(Display_Task, "Dashboard Task", 8192, NULL, 5, NULL);
+    xTaskCreate(CAN_Task, "Can Task", 8192, NULL, 5, NULL);
 }

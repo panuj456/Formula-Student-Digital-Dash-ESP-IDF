@@ -4,9 +4,15 @@
 #include "lvgl.h"
 //#include "lv_meter.h"
 //#include "lv_widgets.h"
-#include "lvgl.h"
+
 #define SCREEN_WIDTH  800
 #define SCREEN_HEIGHT 480
+
+#define FIELD_UINT8   1
+#define FIELD_INT8    2
+#define FIELD_UINT16  3
+#define FIELD_FLOAT   4
+#define MAX_FIELDS    2  // Or higher if needed
 
 static lv_obj_t *rpm_arc;
 static lv_obj_t *rpm_label;
@@ -18,19 +24,10 @@ static lv_obj_t *canvas;
 static lv_obj_t *canvas;
 static lv_obj_t * obj;
 
-extern uint16_t g_rpm;
-extern volatile int g_gear;
-extern volatile int g_speed;
-extern volatile int g_temp;
-extern volatile int g_fuel;
-extern volatile int g_throttle;
-extern volatile int g_battery;
-
-
-void dash_create2();
-void receive_can_message(void);
-void CAN_task(void *pvParameters);
-void update_dashboard(void);
+void dash_create2(void);
+void Display_Task(void *pvParameters);
+size_t decode_message(const uint8_t *buffer, void *fields_out[]);
+void decode_and_dispatch();
 
 
 #endif /* LVGL_DEMO_H */
