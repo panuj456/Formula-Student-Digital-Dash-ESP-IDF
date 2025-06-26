@@ -298,6 +298,8 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
             uint8_t selector = payload[6];  // Use payload[6]
             uint8_t gear = payload[7];      // Use payload[7]
 
+            printf("gear value at test.c", gear);
+
             const char *gear_str;
             switch (gear) {
                 case 0x00: gear_str = "N"; break;

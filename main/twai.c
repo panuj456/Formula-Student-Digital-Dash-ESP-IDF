@@ -22,8 +22,8 @@ bool is_accepted_id(uint32_t id) {
         0x3E0, 0x470, 0x360, 0x361, 0x370, 0x372, 0x3E9, 0x36B, 0x3E5
     };
     for (int i = 0; i < sizeof(accepted_ids) / sizeof(accepted_ids[0]); i++) {
-        if (accepted_ids[i] == id) return true;
-        //if (0x470 == id) return true;
+        //if (accepted_ids[i] == id) return true;
+        if (0x470 == id) return true;
 
     }
     return false;
@@ -76,6 +76,7 @@ void receive_can_message() {
 
                 encoded.data[encoded.length++] = selector;
                 encoded.data[encoded.length++] = gear;
+                printf("gear value raw :", gear); //sanity check
                 break;
             }
             case 0x360: {
