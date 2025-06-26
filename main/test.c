@@ -6,10 +6,13 @@
 #include "twai.h"
 
 extern QueueHandle_t xECU;
+void decode_and_dispatch(const encoded_message_t *encoded_msg);
 
 // Declare the fonts (this makes sure linker knows about them)
 LV_FONT_DECLARE(lv_font_montserrat_36);
 LV_FONT_DECLARE(lv_font_montserrat_48);
+
+extern const lv_font_t lv_font_montserrat_72;
 
 
 #define SCREEN_WIDTH  800
@@ -21,11 +24,19 @@ static lv_obj_t *gear_label;
 static lv_obj_t *speed_label;
 static lv_obj_t *fuel_bar;
 static lv_obj_t *temp_bar;
+static lv_obj_t *brake_bar;
 static lv_obj_t *canvas;
 static lv_obj_t *rpm_value;
 static lv_obj_t *throttle_bar;
 static lv_obj_t *throttle_label;
 static lv_obj_t *battery_label;
+static lv_obj_t *coolant_label;
+static lv_obj_t *brake_label;
+
+lv_obj_t *coolant_temp_label;
+lv_obj_t *oil_temp_label;
+lv_obj_t *oil_pressure_label;
+lv_obj_t *fuel_pressure_label;
 
 
 // Make sure you’ve got these fonts enabled in your lv_conf.h
@@ -47,21 +58,7 @@ void dash_create2(void)
     lv_obj_set_size(primary_data, SCREEN_WIDTH, SCREEN_HEIGHT);
     lv_obj_align(primary_data, LV_ALIGN_LEFT_MID, 0, 0);
 
-    // Add primary meters here...
 
-    // --- RPM Arc Meter ---
-    /*
-    lv_obj_t *rpm_arc = lv_arc_create(primary_data);
-    lv_obj_clear_flag(rpm_arc, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_remove_style(rpm_arc, NULL, LV_PART_KNOB);
-    lv_obj_set_size(rpm_arc, 150, 150);
-    lv_obj_center(rpm_arc);
-    lv_arc_set_range(rpm_arc, 0, 8000);
-    lv_arc_set_value(rpm_arc, 0);
-    lv_obj_set_style_arc_color(rpm_arc, lv_palette_main(LV_PALETTE_RED), 0);
-    lv_obj_set_style_arc_width(rpm_arc, 20, 0);
-    lv_arc_set_bg_angles(rpm_arc, 135, 45); // For a gauge style arc
-    */
 
     // Create a style for the throttle bar (optional)
     static lv_style_t throttle_style;
@@ -84,6 +81,30 @@ void dash_create2(void)
     lv_label_set_text(throttle_label, "Throttle");
     lv_obj_align_to(throttle_label, throttle_bar, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);  // 5px below the bar
     
+    // Create a style for the brake pressure bar
+    static lv_style_t brake_style;
+    lv_style_init(&brake_style);
+    lv_style_set_bg_color(&brake_style, lv_color_hex(0xFF4500));  // Orange-Red fill
+    lv_style_set_radius(&brake_style, 5);
+
+    // Create the bar
+    brake_bar = lv_bar_create(primary_data);
+    lv_obj_add_style(brake_bar, &brake_style, LV_PART_INDICATOR);
+    lv_obj_set_size(brake_bar, 30, 300);  // Width, Height (same as throttle)
+    lv_obj_set_style_bg_color(brake_bar, lv_color_black(), 0);
+    lv_obj_set_style_border_width(brake_bar, 10, 0);
+    lv_obj_align_to(brake_bar, throttle_bar, LV_ALIGN_OUT_RIGHT_MID, 20, 0);  // 20px space to the right
+
+    // Create a label for brake pressure
+    brake_label = lv_label_create(primary_data);
+    lv_obj_set_style_text_font(brake_label, &lv_font_montserrat_12, 0);
+    lv_label_set_text(brake_label, "Brake");
+    lv_obj_align_to(brake_label, brake_bar, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);  // Below the brake bar
+
+    // Set bar range and initial value
+    lv_bar_set_range(brake_bar, 0, 100);  // Pressure % (adjust range if using psi/bar/etc.)
+    lv_bar_set_value(brake_bar, 0, LV_ANIM_OFF);
+
     rpm_bar = lv_bar_create(primary_data);
     lv_obj_set_size(rpm_bar, 475, 50);
     lv_obj_align(rpm_bar, LV_ALIGN_TOP_MID, 0, 10);
@@ -102,12 +123,12 @@ void dash_create2(void)
 
     // RPM Value Label (outside arc)
     rpm_label = lv_label_create(primary_data);
-    lv_label_set_text(rpm_label, "0000");
+    lv_label_set_text(rpm_label, "-----");
     lv_obj_set_style_text_font(rpm_label, &lv_font_montserrat_36, 0);
     lv_obj_set_style_text_color(rpm_label, lv_palette_main(LV_PALETTE_RED), 0);
     lv_obj_set_style_bg_color(rpm_label, lv_color_black(), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(rpm_label, LV_OPA_COVER, LV_PART_MAIN);    
-    lv_obj_align_to(rpm_label, rpm_bar, LV_ALIGN_CENTER, 0, 70);
+    lv_obj_align_to(rpm_label, rpm_bar, LV_ALIGN_CENTER, 0, 70); //fix later
 
     lv_obj_t *rpm_unit_label = lv_label_create(primary_data);
     lv_label_set_text(rpm_unit_label, "RPM");
@@ -118,9 +139,9 @@ void dash_create2(void)
     
     // --- Gear Label ---
     gear_label = lv_label_create(primary_data);
-    lv_obj_set_style_text_font(gear_label, &lv_font_montserrat_48, 0);
+    lv_obj_set_style_text_font(gear_label, &lv_font_montserrat_72, 0);
     lv_obj_set_style_text_color(gear_label, lv_palette_main(LV_PALETTE_YELLOW), 0);
-    lv_label_set_text(gear_label, "N");
+    lv_label_set_text(gear_label, "-");
     // Set background color and opacity
     lv_obj_set_style_bg_color(gear_label, lv_color_black(), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(gear_label, LV_OPA_COVER, LV_PART_MAIN);    
@@ -132,7 +153,7 @@ void dash_create2(void)
     lv_obj_set_style_text_color(speed_label, lv_palette_main(LV_PALETTE_BLUE), 0);
     lv_obj_set_style_bg_color(speed_label, lv_color_black(), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(speed_label, LV_OPA_COVER, LV_PART_MAIN);   
-    lv_label_set_text(speed_label, "000");
+    lv_label_set_text(speed_label, "---");
     lv_obj_align(speed_label, LV_ALIGN_BOTTOM_MID, 0, -50);
     lv_obj_t *kmh_label = lv_label_create(primary_data);
     lv_obj_set_style_text_font(kmh_label, &lv_font_montserrat_16, 0);
@@ -142,229 +163,365 @@ void dash_create2(void)
 
     // Battery label
     battery_label = lv_label_create(primary_data);
-    lv_obj_set_style_text_font(battery_label, &lv_font_montserrat_16, 0);
+    lv_obj_set_style_text_font(battery_label, &lv_font_montserrat_24, 0);
     lv_obj_set_style_text_color(battery_label, lv_palette_main(LV_PALETTE_GREEN), 0);
     lv_obj_set_style_bg_color(battery_label, lv_color_black(), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(battery_label, LV_OPA_COVER, LV_PART_MAIN);
-    lv_label_set_text(battery_label, "0");
+    lv_label_set_text(battery_label, "-");
     lv_obj_align(battery_label, LV_ALIGN_BOTTOM_RIGHT, -10, -10);
 
+        // === RIGHT-SIDE SENSOR LABELS (Middle Right) ===
+    lv_coord_t label_x = SCREEN_WIDTH - 10;  // Align near right edge
+    lv_coord_t label_y = SCREEN_HEIGHT / 2 - 80;
 
-    // Page 2: secondary data
-    lv_obj_t *secondary_data = lv_obj_create(main_container);
-    lv_obj_set_size(secondary_data, SCREEN_WIDTH, SCREEN_HEIGHT);
-    lv_obj_align_to(secondary_data, primary_data, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
+    // Coolant Temp
+    coolant_label = lv_label_create(primary_data);
+    lv_obj_set_style_text_font(coolant_label, &lv_font_montserrat_16, 0);
+    lv_label_set_text(coolant_label, "Coolant:");
+    lv_obj_align(coolant_label, LV_ALIGN_TOP_RIGHT, -120, label_y);
 
-    // Fuel Temp Label
-    lv_obj_t *fuel_temp_label = lv_label_create(secondary_data);
-    lv_obj_set_style_text_font(fuel_temp_label, &lv_font_montserrat_24, 0);
-    lv_label_set_text(fuel_temp_label, "Fuel Temp");
-    lv_obj_align(fuel_temp_label, LV_ALIGN_TOP_MID, 0, 20);
+    coolant_temp_label = lv_label_create(primary_data);
+    lv_obj_set_style_text_font(coolant_temp_label, &lv_font_montserrat_24, 0);
+    lv_obj_set_style_text_color(coolant_temp_label, lv_palette_main(LV_PALETTE_RED), 0);
+    lv_label_set_text(coolant_temp_label, "--");
+    lv_obj_align_to(coolant_temp_label, coolant_label, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
 
-    temp_bar = lv_bar_create(secondary_data);
-    lv_obj_set_size(temp_bar, 200, 20);
-    lv_obj_align(temp_bar, LV_ALIGN_TOP_LEFT, 20, 200);
-    lv_bar_set_range(temp_bar, 0, 120); // Coolant temp in °C
-    
-    fuel_bar = lv_bar_create(secondary_data);
-    lv_obj_set_size(fuel_bar, 200, 20);
-    lv_obj_align(fuel_bar, LV_ALIGN_TOP_LEFT, 20, 150);
-    lv_bar_set_range(fuel_bar, 0, 100); // Example range for fuel %
+    // Oil Temp
+    lv_obj_t *oil_label = lv_label_create(primary_data);
+    lv_obj_set_style_text_font(oil_label, &lv_font_montserrat_16, 0);
+    lv_label_set_text(oil_label, "Oil Temp:");
+    lv_obj_align_to(oil_label, coolant_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 10);
 
-    // Oil Pressure Label
-    lv_obj_t *oil_pressure_label = lv_label_create(secondary_data);
+    oil_temp_label = lv_label_create(primary_data);
+    lv_obj_set_style_text_font(oil_temp_label, &lv_font_montserrat_24, 0);
+    lv_obj_set_style_text_color(oil_temp_label, lv_palette_main(LV_PALETTE_ORANGE), 0);
+    lv_label_set_text(oil_temp_label, "--");
+    lv_obj_align_to(oil_temp_label, oil_label, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
+
+    // Oil Pressure
+    lv_obj_t *oil_ps_label = lv_label_create(primary_data);
+    lv_obj_set_style_text_font(oil_ps_label, &lv_font_montserrat_16, 0);
+    lv_label_set_text(oil_ps_label, "Oil PSI:");
+    lv_obj_align_to(oil_ps_label, oil_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 10);
+
+    oil_pressure_label = lv_label_create(primary_data);
     lv_obj_set_style_text_font(oil_pressure_label, &lv_font_montserrat_24, 0);
-    lv_label_set_text(oil_pressure_label, "Oil Pressure");
-    lv_obj_align(oil_pressure_label, LV_ALIGN_TOP_MID, 0, 80);
+    lv_obj_set_style_text_color(oil_pressure_label, lv_palette_main(LV_PALETTE_PURPLE), 0);
+    lv_label_set_text(oil_pressure_label, "--");
+    lv_obj_align_to(oil_pressure_label, oil_ps_label, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
+
+    // Fuel Pressure
+    lv_obj_t *fuel_label = lv_label_create(primary_data);
+    lv_obj_set_style_text_font(fuel_label, &lv_font_montserrat_16, 0);
+    lv_label_set_text(fuel_label, "Fuel PSI:");
+    lv_obj_align_to(fuel_label, oil_ps_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 10);
+
+    fuel_pressure_label = lv_label_create(primary_data);
+    lv_obj_set_style_text_font(fuel_pressure_label, &lv_font_montserrat_24, 0);
+    lv_obj_set_style_text_color(fuel_pressure_label, lv_palette_main(LV_PALETTE_BLUE), 0);
+    lv_label_set_text(fuel_pressure_label, "--");
+    lv_obj_align_to(fuel_pressure_label, fuel_label, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
+
 }
 
-// Example function called periodically:
-/*
-void update_dashboard(void) { //update peripheral
-    //throttle position
-    lv_bar_set_value(throttle_bar, g_throttle, LV_ANIM_ON);
-    
-    // --- RPM ---
-    if (g_rpm > 12000) g_rpm = 12000;
-    // Map RPM to arc value (assuming arc max is 100)
-    lv_bar_set_value(rpm_bar, g_rpm, LV_ANIM_ON);
-    lv_label_set_text_fmt(rpm_label, "%05d", g_rpm);  // Set text directly
 
-    // --- Gear ---
-    // Gear text
-    if (gear_label != NULL && lv_obj_is_valid(gear_label)) {
-        if (g_gear == 0) {
-            lv_label_set_text(gear_label, "N");
-        } else {
-            lv_label_set_text_fmt(gear_label, "%d", g_gear);
-        }
-    } // Show gear as digit (or replace with "N" if gear == 0 etc.)
+void decode_and_dispatch(const encoded_message_t *encoded_msg) {
+    if (encoded_msg->length < 2) return;  // must have at least 2 bytes for ID
 
-    // --- Speed ---
-    lv_label_set_text_fmt(speed_label, "%03d", g_speed);
-
-    lv_label_set_text_fmt(battery_label, "%02d", g_battery);
-
-    // update more values
-
-    // --- Fuel ---
-    //lv_bar_set_value(fuel_bar, g_fuel, LV_ANIM_ON);
-
-    // --- Coolant Temp ---
-    //lv_bar_set_value(temp_bar, g_temp, LV_ANIM_ON);
-}
-*/
-void decode_and_dispatch() {
-    uint16_t id;
-    float f1, f2;
-
-    float coolant_temp;
-    float oil_temp;
-    uint16_t selector_position;
-    int8_t gear;
-    uint16_t rpm;
-    float throttle;
-    float fuel_pressure;
-    float oil_pressure;
-    float brake_pressure;
-    float vehicle_speed;
-    float battery_voltage;
-    float lambda;
-
-    uint8_t ignition_state;
-
-    can_message_t msg;
-
-    // Attempt to receive a message from the ECU queue
-    if (!xQueueReceive(xECU, &msg, 0)) {
-        return;  // no message received, return early
-    }
-    void *fields[2] = { &f1, &f2 };
-    const uint8_t *buffer = msg.data;
-    id = decode_message(buffer, fields);
-
-    printf("Received CAN ID: %d, f1=%.2f, f2=%.2f\n", id, f1, f2);
+    uint16_t id = (encoded_msg->data[0] << 8) | encoded_msg->data[1];
+    const uint8_t *payload = encoded_msg->data + 2;
+    size_t payload_len = encoded_msg->length - 2;
 
     switch (id) {
-        case 992: // coolant and oil temp
-            coolant_temp = f1;
-            oil_temp = f2;
-            break;
 
-        case 1136: { // selector and gear
-            uint16_t selector = *(uint16_t*)&f1;
-            int8_t gear_val = (int8_t)f2;
-            selector_position = selector;
-            gear = gear_val;
+        case 992: { // 0x3E0: Coolant & Oil Temp
+            if (payload_len >= 2 * sizeof(float)) {
+                float coolant_temp, oil_temp;
+                memcpy(&coolant_temp, payload, sizeof(float));
+                memcpy(&oil_temp, payload + sizeof(float), sizeof(float));
 
-            if (lv_obj_is_valid(gear_label)) {
-                if (gear_val == 0)
-                    lv_label_set_text(gear_label, "N");
-                else
-                    lv_label_set_text_fmt(gear_label, "%d", gear_val);
+                // Update coolant progress bar
+                if (temp_bar && lv_obj_is_valid(temp_bar)) {
+                    lv_bar_set_value(temp_bar, (int)coolant_temp, LV_ANIM_ON);
+                }
+
+                // Update coolant temp label
+                if (coolant_temp_label && lv_obj_is_valid(coolant_temp_label)) {
+                    int val = (int)(coolant_temp * 10);  // One decimal place
+                    char buf[10];
+
+                    buf[0] = '0' + (val / 1000) % 10;  // Hundreds
+                    buf[1] = '0' + (val / 100) % 10;   // Tens
+                    buf[2] = '0' + (val / 10) % 10;    // Ones
+                    buf[3] = '.';
+                    buf[4] = '0' + (val % 10);         // Tenths
+                    buf[5] = 0xC2;                     // UTF-8 for °
+                    buf[6] = 0xB0;
+                    buf[7] = 'C';
+                    buf[8] = '\0';
+
+                    int start = 0;
+                    while (start < 3 && buf[start] == '0') start++;
+                    if (start == 3) start--;  // Keep at least one digit
+
+                    lv_label_set_text(coolant_temp_label, &buf[start]);
+                    lv_obj_invalidate(coolant_temp_label);
+                }
+
+                // Update oil temp label
+                if (oil_temp_label && lv_obj_is_valid(oil_temp_label)) {
+                    int val = (int)(oil_temp * 10);
+                    char buf[10];
+
+                    buf[0] = '0' + (val / 1000) % 10;
+                    buf[1] = '0' + (val / 100) % 10;
+                    buf[2] = '0' + (val / 10) % 10;
+                    buf[3] = '.';
+                    buf[4] = '0' + (val % 10);
+                    buf[5] = 0xC2;
+                    buf[6] = 0xB0;
+                    buf[7] = 'C';
+                    buf[8] = '\0';
+
+                    int start = 0;
+                    while (start < 3 && buf[start] == '0') start++;
+                    if (start == 3) start--;
+
+                    lv_label_set_text(oil_temp_label, &buf[start]);
+                    lv_obj_invalidate(oil_temp_label);
+                }
             }
             break;
         }
 
-        case 864: { // rpm and throttle
-            uint16_t rpm_val = *(uint16_t*)&f1;
-            float throttle_val = f2;
-            rpm = rpm_val;
-            throttle = throttle_val;
+        case 1136: { // 0x470: Gear
+            uint8_t selector = payload[6];  // Use payload[6]
+            uint8_t gear = payload[7];      // Use payload[7]
 
-            if (rpm_val > 12000) rpm_val = 12000;
-            lv_bar_set_value(rpm_bar, rpm_val, LV_ANIM_ON);
-            lv_label_set_text_fmt(rpm_label, "%05d", rpm_val);
-            lv_bar_set_value(throttle_bar, throttle_val, LV_ANIM_ON);
+            const char *gear_str;
+            switch (gear) {
+                case 0x00: gear_str = "N"; break;
+                case 0x01: gear_str = "1"; break;
+                case 0x02: gear_str = "2"; break;
+                case 0x03: gear_str = "3"; break;
+                case 0x04: gear_str = "4"; break;
+                case 0x05: gear_str = "5"; break;
+                case 0x06: gear_str = "6"; break;
+                case 0x0E: gear_str = "R"; break;
+                case 0x0F: gear_str = "P"; break;
+                case 0xFE:
+                case 0xFF:
+                default:   gear_str = "-"; break;
+            }
+
+            if (gear_label && lv_obj_is_valid(gear_label)) {
+                lv_label_set_text(gear_label, gear_str);
+            }
             break;
         }
 
-        case 865: // fuel and oil pressure
-            fuel_pressure = f1;
-            oil_pressure = f2;
-            break;
+        case 864: { // 0x360: RPM & Throttle
+            if (payload_len >= sizeof(uint16_t) + sizeof(float)) {
+                uint16_t rpm;
+                float throttle;
+                memcpy(&rpm, payload, sizeof(uint16_t));
+                memcpy(&throttle, payload + sizeof(uint16_t), sizeof(float));
 
-        case 875: // brake
-            brake_pressure = f1;
-            break;
+                // Limit RPM to max display value
+                if (rpm > 11500) rpm = 11500;
 
-        case 880: // speed
-            vehicle_speed = f1;
-            lv_label_set_text_fmt(speed_label, "%.1f", f1); // or %.0f if integer
-            break;
+                // Update RPM bar and label
+                if (rpm_bar && lv_obj_is_valid(rpm_bar)) {
+                    lv_bar_set_value(rpm_bar, rpm, LV_ANIM_ON);
+                }
+                if (rpm_label && lv_obj_is_valid(rpm_label)) {
+                    lv_label_set_text_fmt(rpm_label, "%05d", rpm);
+                }
 
-        case 882: // battery
-            battery_voltage = f1;
-            lv_label_set_text_fmt(battery_label, "%.2f", f1);
-            break;
+                // Update throttle bar
+                if (throttle_bar && lv_obj_is_valid(throttle_bar)) {
+                    lv_bar_set_value(throttle_bar, (int)throttle, LV_ANIM_ON);
+                }
 
-        case 1001: // lambda
-            lambda = f1;
+                // Shift-up logic
+                if (gear_label && lv_obj_is_valid(gear_label)) {
+                    if (rpm >= 11000) {
+                        // Flash gear label red (RPM limiter alert)
+                        static bool flash = false;
+                        flash = !flash; // toggle each time this is called
+                        lv_obj_set_style_bg_color(gear_label, flash ? lv_color_hex(0xFF0000) : lv_color_hex(0x000000), 0);
+                    } else if (rpm >= 10200) {
+                        // Shift-up warning (solid red background)
+                        lv_obj_set_style_bg_color(gear_label, lv_color_hex(0x550000), 0);
+                    } else {
+                        // Normal background
+                        lv_obj_set_style_bg_color(gear_label, lv_color_hex(0x000000), 0);
+                    }
+                }
+            }
             break;
+        }
 
-        case 997: // ignition
-            ignition_state = (uint8_t)f1;
-            break;
+    case 865: { // 0x361: Fuel & Oil Pressure
+        if (payload_len >= 2 * sizeof(float)) {
+            float fuel_pressure, oil_pressure;
+            memcpy(&fuel_pressure, payload, sizeof(float));
+            memcpy(&oil_pressure, payload + sizeof(float), sizeof(float));
 
-        default:
+            // Convert to integer * 10 for 1 decimal place, e.g. 12.3 -> 123
+            int fuel_val = (int)(fuel_pressure * 10);
+            int oil_val = (int)(oil_pressure * 10);
+
+            if (fuel_pressure_label && lv_obj_is_valid(fuel_pressure_label)) {
+                char buf[8]; // Enough for "xxx.x\0"
+                // Format as xxx.x manually
+                buf[0] = '0' + (fuel_val / 1000) % 10;  // Hundreds
+                buf[1] = '0' + (fuel_val / 100) % 10;   // Tens
+                buf[2] = '0' + (fuel_val / 10) % 10;    // Ones
+                buf[3] = '.';                           // Decimal point
+                buf[4] = '0' + (fuel_val % 10);        // Tenths
+                buf[5] = '\0';
+
+                // Handle leading zeros (remove if you want)
+                // Or just shift to start at first non-zero digit
+                int start = 0;
+                while (start < 4 && buf[start] == '0') start++;
+                if (start == 4) start--;  // Keep at least one digit before decimal
+
+                lv_label_set_text(fuel_pressure_label, &buf[start]);
+                lv_obj_invalidate(fuel_pressure_label);
+            }
+
+            if (oil_pressure_label && lv_obj_is_valid(oil_pressure_label)) {
+                char buf[8];
+                buf[0] = '0' + (oil_val / 1000) % 10;
+                buf[1] = '0' + (oil_val / 100) % 10;
+                buf[2] = '0' + (oil_val / 10) % 10;
+                buf[3] = '.';
+                buf[4] = '0' + (oil_val % 10);
+                buf[5] = '\0';
+
+                int start = 0;
+                while (start < 4 && buf[start] == '0') start++;
+                if (start == 4) start--;
+
+                lv_label_set_text(oil_pressure_label, &buf[start]);
+                lv_obj_invalidate(oil_pressure_label);
+            }
+
+            // Optional: update any progress bars here
+
+        } else {
+            printf("Invalid payload length for fuel/oil pressure: %d\n", payload_len);
+        }
+        break;
+    }
+
+        case 875: { // 0x36B: Brake Pressure
+            if (payload_len >= sizeof(float)) {
+                float brake_pressure;
+                memcpy(&brake_pressure, payload, sizeof(float));
+
+                // Clamp to valid bar range (0–100) to prevent UI issues
+                if (brake_pressure < 0) brake_pressure = 0;
+                if (brake_pressure > 100) brake_pressure = 100;
+
+                if (brake_bar && lv_obj_is_valid(brake_bar)) {
+                    lv_bar_set_value(brake_bar, (int)brake_pressure, LV_ANIM_ON);
+                }
+            }
             break;
+        }
+
+        case 880: { // 0x370: Vehicle Speed
+            //printf("Speed payload bytes: %02X %02X %02X %02X\n", payload[0], payload[1], payload[2], payload[3]);
+            if (payload_len >= sizeof(float)) {
+                float speed_float;
+                memcpy(&speed_float, payload, sizeof(float));
+                int speed = (int)speed_float;
+
+                printf("Speed: %03d\n", speed);
+
+                if (speed_label && lv_obj_is_valid(speed_label)) {
+                    // Build a 3-digit zero-padded string manually (e.g., "005", "120")
+                    char buf[4];
+                    buf[0] = '0' + (speed / 100) % 10;
+                    buf[1] = '0' + (speed / 10) % 10;
+                    buf[2] = '0' + speed % 10;
+                    buf[3] = '\0';
+
+                    lv_label_set_text(speed_label, buf);
+                    lv_obj_invalidate(speed_label);
+                }
+            }
+            break;
+        }
+
+    case 882: { // Battery voltage
+        printf("Voltage payload bytes: %02X %02X %02X %02X\n", payload[0], payload[1], payload[2], payload[3]);
+        if (payload_len >= sizeof(float)) {
+            float voltage;
+            memcpy(&voltage, payload, sizeof(float));
+            printf("Voltage: %.2f\n", voltage);
+
+            if (battery_label && lv_obj_is_valid(battery_label)) {
+                // Manually build string for voltage without using sprintf
+                int volts_int = (int)voltage;
+                int volts_frac = (int)((voltage - volts_int) * 100);
+
+                char buf[16];
+                buf[0] = '0' + (volts_int / 10);    // tens digit
+                buf[1] = '0' + (volts_int % 10);    // ones digit
+                buf[2] = '.';
+                buf[3] = '0' + (volts_frac / 10);   // tenths
+                buf[4] = '0' + (volts_frac % 10);   // hundredths
+                buf[5] = '\0';
+
+                lv_label_set_text(battery_label, buf);
+                lv_obj_invalidate(battery_label);  // refresh label
+            }
+        }
+        break;
+    }
+
+        case 1001: { // 0x3E9: Lambda
+            if (payload_len >= sizeof(float)) {
+                float lambda;
+                memcpy(&lambda, payload, sizeof(float));
+                // Optional: update lambda display
+            }
+            break;
+        }
+
+        default: {
+            // Unknown ID
+            break;
+        }
     }
 }
 
 
-size_t decode_message(const uint8_t *buffer, void *fields_out[]) {
-    size_t offset = 0;
 
-    // Read message ID (2 bytes)
-    uint16_t message_id = (buffer[offset] << 8) | buffer[offset + 1];
-    offset += 2;
-
-    // Find message definition
-    const message_def_t *def = NULL;
-    for (size_t i = 0; i < message_defs_count; i++) {
-        if (message_defs[i].message_id == message_id) {
-            def = &message_defs[i];
-            break;
-        }
-    }
-    if (!def) return 0; // unknown message
-
-    // Decode each expected field
-    for (size_t i = 0; i < MAX_FIELDS; i++) {
-        if (i < def->field_count) {
-            switch (def->fields[i]) {
-                case FIELD_UINT8:
-                    *(uint8_t*)fields_out[i] = buffer[offset++];
-                    break;
-                case FIELD_INT8:
-                    *(int8_t*)fields_out[i] = (int8_t)buffer[offset++];
-                    break;
-                case FIELD_UINT16:
-                    *(uint16_t*)fields_out[i] = (buffer[offset] << 8) | buffer[offset + 1];
-                    offset += 2;
-                    break;
-                case FIELD_FLOAT:
-                    memcpy(fields_out[i], buffer + offset, sizeof(float));
-                    offset += sizeof(float);
-                    break;
-            }
-        } else {
-            // Skip padded zeros (all float sized)
-            offset += sizeof(float);
-        }
-    }
-
-    return message_id;
+float swap_float_bytes(const uint8_t *data) {
+    uint8_t temp[4];
+    temp[0] = data[3];
+    temp[1] = data[2];
+    temp[2] = data[1];
+    temp[3] = data[0];
+    float val;
+    memcpy(&val, temp, sizeof(float));
+    return val;
 }
 
 void Display_Task(void *pvParameters) {
+    encoded_message_t msg;
     while (1) {
-        decode_and_dispatch();
-
-        if (lvgl_port_lock(-1)) {
-            //update_dashboard(); //since using globals no need for params
-            lvgl_port_unlock();
+        if (xQueueReceive(xECU, &msg, 0) == pdPASS) {
+            if (lvgl_port_lock(-1)) {
+                decode_and_dispatch(&msg);
+                lvgl_port_unlock();
+            }
         }
-        vTaskDelay(pdMS_TO_TICKS(100)); //100
+        vTaskDelay(pdMS_TO_TICKS(5));
     }
 }

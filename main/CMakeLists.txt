@@ -6,6 +6,7 @@ idf_component_register(
         "lvgl_port.c"
         "lv_font_montserrat_36.c"
         "lv_font_montserrat_48.c"
+        "lv_font_montserrat_72.c"
         "twai.c"
     INCLUDE_DIRS "."
     REQUIRES lvgl__lvgl

@@ -26,8 +26,8 @@ static lv_obj_t * obj;
 
 void dash_create2(void);
 void Display_Task(void *pvParameters);
-size_t decode_message(const uint8_t *buffer, void *fields_out[]);
-void decode_and_dispatch();
+float swap_float_bytes(const uint8_t *data);
+//size_t decode_message(const uint8_t *buffer, void *fields_out[]);
 
 
 #endif /* LVGL_DEMO_H */
