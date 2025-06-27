@@ -22,8 +22,8 @@ bool is_accepted_id(uint32_t id) {
         0x3E0, 0x470, 0x360, 0x361, 0x370, 0x372, 0x3E9, 0x36B, 0x3E5
     };
     for (int i = 0; i < sizeof(accepted_ids) / sizeof(accepted_ids[0]); i++) {
-        //if (accepted_ids[i] == id) return true;
-        if (0x470 == id) return true;
+        if (accepted_ids[i] == id) return true;
+        //if (0x470 == id) return true;
 
     }
     return false;
@@ -32,7 +32,7 @@ bool is_accepted_id(uint32_t id) {
 void receive_can_message() {
     twai_message_t received_msg;
     //esp_err_t ret = twai_receive(&received_msg, 500 / portTICK_PERIOD_MS);
-    esp_err_t ret = twai_receive(&received_msg, 500 / portTICK_PERIOD_MS);
+    esp_err_t ret = twai_receive(&received_msg, 62 / portTICK_PERIOD_MS);
 
 
     twai_status_info_t status;
@@ -64,6 +64,8 @@ void receive_can_message() {
             case 0x3E0: { // Coolant & Oil Temp
                 float coolant = ((received_msg.data[0] << 8) | received_msg.data[1]) / 10.0f;
                 float oil = ((received_msg.data[6] << 8) | received_msg.data[7]) / 10.0f;
+                coolant = coolant - 273.15f;
+                oil = oil - 273.15f;
                 memcpy(encoded.data + encoded.length, &coolant, sizeof(float));
                 encoded.length += sizeof(float);
                 memcpy(encoded.data + encoded.length, &oil, sizeof(float));
@@ -71,12 +73,10 @@ void receive_can_message() {
                 break;
             }
             case 0x470: {
-                uint8_t selector = received_msg.data[6];
                 uint8_t gear = received_msg.data[7];
 
-                encoded.data[encoded.length++] = selector;
                 encoded.data[encoded.length++] = gear;
-                printf("gear value raw :", gear); //sanity check
+                printf("gear value at twai.c: %d\n", gear);
                 break;
             }
             case 0x360: {

@@ -384,6 +384,7 @@
 #define LV_FONT_MONTSERRAT_44 1
 #define LV_FONT_MONTSERRAT_46 1
 #define LV_FONT_MONTSERRAT_48 1
+#define LV_FONT_MONTSERRAT_72 1
 
 /*Demonstrate special features*/
 #define LV_FONT_MONTSERRAT_12_SUBPX      0

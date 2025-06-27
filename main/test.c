@@ -14,6 +14,8 @@ LV_FONT_DECLARE(lv_font_montserrat_48);
 
 extern const lv_font_t lv_font_montserrat_72;
 
+LV_FONT_DECLARE(lv_font_montserrat_72);
+
 
 #define SCREEN_WIDTH  800
 #define SCREEN_HEIGHT 480
@@ -53,12 +55,15 @@ void dash_create2(void)
     lv_obj_clear_flag(main_container, LV_OBJ_FLAG_SCROLL_ELASTIC);
     lv_obj_set_style_pad_all(main_container, 0, 0);
 
+    
+
     // Page 1: primary data
     lv_obj_t *primary_data = lv_obj_create(main_container);
     lv_obj_set_size(primary_data, SCREEN_WIDTH, SCREEN_HEIGHT);
     lv_obj_align(primary_data, LV_ALIGN_LEFT_MID, 0, 0);
-
-
+    
+    lv_obj_set_style_bg_color(primary_data, lv_color_black(), 0);
+    lv_obj_set_style_bg_opa(primary_data, LV_OPA_COVER, 0);
 
     // Create a style for the throttle bar (optional)
     static lv_style_t throttle_style;
@@ -70,7 +75,7 @@ void dash_create2(void)
     throttle_bar = lv_bar_create(primary_data);
     lv_obj_add_style(throttle_bar, &throttle_style, LV_PART_INDICATOR);
     lv_obj_set_size(throttle_bar, 30, 300);  // Width, Height
-    lv_obj_set_style_bg_color(throttle_bar, lv_color_black(), 0);
+    lv_obj_set_style_bg_color(throttle_bar, lv_color_hex(0xAAAAAA), 0);
     lv_obj_set_style_border_width(throttle_bar, 10, 0);
     lv_obj_align(throttle_bar, LV_ALIGN_LEFT_MID, 10, 0);  // Left center of screen with 10px margin
     lv_bar_set_range(throttle_bar, 0, 100);  // Throttle % from 0 to 100
@@ -91,7 +96,7 @@ void dash_create2(void)
     brake_bar = lv_bar_create(primary_data);
     lv_obj_add_style(brake_bar, &brake_style, LV_PART_INDICATOR);
     lv_obj_set_size(brake_bar, 30, 300);  // Width, Height (same as throttle)
-    lv_obj_set_style_bg_color(brake_bar, lv_color_black(), 0);
+    lv_obj_set_style_bg_color(brake_bar, lv_color_hex(0xAAAAAA), 0);
     lv_obj_set_style_border_width(brake_bar, 10, 0);
     lv_obj_align_to(brake_bar, throttle_bar, LV_ALIGN_OUT_RIGHT_MID, 20, 0);  // 20px space to the right
 
@@ -106,9 +111,9 @@ void dash_create2(void)
     lv_bar_set_value(brake_bar, 0, LV_ANIM_OFF);
 
     rpm_bar = lv_bar_create(primary_data);
-    lv_obj_set_size(rpm_bar, 475, 50);
+    lv_obj_set_size(rpm_bar, 475, 70);
     lv_obj_align(rpm_bar, LV_ALIGN_TOP_MID, 0, 10);
-    lv_obj_set_style_bg_color(rpm_bar, lv_color_black(), 0);
+    lv_obj_set_style_bg_color(rpm_bar, lv_color_hex(0xAAAAAA), 0);
     lv_obj_set_style_border_width(rpm_bar, 10, 0);
     lv_bar_set_range(rpm_bar, 0, 12000); // example range
     lv_bar_set_value(rpm_bar, 0, LV_ANIM_OFF);
@@ -124,46 +129,46 @@ void dash_create2(void)
     // RPM Value Label (outside arc)
     rpm_label = lv_label_create(primary_data);
     lv_label_set_text(rpm_label, "-----");
-    lv_obj_set_style_text_font(rpm_label, &lv_font_montserrat_36, 0);
+    lv_obj_set_style_text_font(rpm_label, &lv_font_montserrat_48, 0);
     lv_obj_set_style_text_color(rpm_label, lv_palette_main(LV_PALETTE_RED), 0);
     lv_obj_set_style_bg_color(rpm_label, lv_color_black(), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(rpm_label, LV_OPA_COVER, LV_PART_MAIN);    
-    lv_obj_align_to(rpm_label, rpm_bar, LV_ALIGN_CENTER, 0, 70); //fix later
+    lv_obj_align_to(rpm_label, rpm_bar, LV_ALIGN_CENTER, 0, 80); //fix later
 
     lv_obj_t *rpm_unit_label = lv_label_create(primary_data);
     lv_label_set_text(rpm_unit_label, "RPM");
     lv_obj_set_style_text_font(rpm_unit_label, &lv_font_montserrat_16, 0);
     lv_obj_set_style_text_color(rpm_unit_label, lv_color_hex(0x999999), 0);
-    lv_obj_align_to(rpm_unit_label, rpm_bar, LV_ALIGN_CENTER, 0, 100);
+    lv_obj_align_to(rpm_unit_label, rpm_bar, LV_ALIGN_CENTER, 0, 125);
 
     
     // --- Gear Label ---
     gear_label = lv_label_create(primary_data);
-    lv_obj_set_style_text_font(gear_label, &lv_font_montserrat_72, 0);
+    lv_obj_set_style_text_font(gear_label, &lv_font_montserrat_48, 0);
     lv_obj_set_style_text_color(gear_label, lv_palette_main(LV_PALETTE_YELLOW), 0);
     lv_label_set_text(gear_label, "-");
     // Set background color and opacity
     lv_obj_set_style_bg_color(gear_label, lv_color_black(), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(gear_label, LV_OPA_COVER, LV_PART_MAIN);    
-    lv_obj_align(gear_label, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_align(gear_label, LV_ALIGN_CENTER, 0, 60);
 
     // --- Speed Label ---
     speed_label = lv_label_create(primary_data);
-    lv_obj_set_style_text_font(speed_label, &lv_font_montserrat_36, 0);
+    lv_obj_set_style_text_font(speed_label, &lv_font_montserrat_48, 0);
     lv_obj_set_style_text_color(speed_label, lv_palette_main(LV_PALETTE_BLUE), 0);
     lv_obj_set_style_bg_color(speed_label, lv_color_black(), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(speed_label, LV_OPA_COVER, LV_PART_MAIN);   
     lv_label_set_text(speed_label, "---");
-    lv_obj_align(speed_label, LV_ALIGN_BOTTOM_MID, 0, -50);
+    lv_obj_align(speed_label, LV_ALIGN_BOTTOM_MID, 0, -40);
     lv_obj_t *kmh_label = lv_label_create(primary_data);
     lv_obj_set_style_text_font(kmh_label, &lv_font_montserrat_16, 0);
-    lv_obj_set_style_text_color(kmh_label, lv_palette_main(LV_PALETTE_BLUE), 0);
+    lv_obj_set_style_text_color(kmh_label, lv_palette_main(LV_PALETTE_GREY), 0);
     lv_label_set_text(kmh_label, "KM/H");
-    lv_obj_align(kmh_label, LV_ALIGN_BOTTOM_MID, 50, -50);
+    lv_obj_align(kmh_label, LV_ALIGN_BOTTOM_MID, 0, 0);
 
     // Battery label
     battery_label = lv_label_create(primary_data);
-    lv_obj_set_style_text_font(battery_label, &lv_font_montserrat_24, 0);
+    lv_obj_set_style_text_font(battery_label, &lv_font_montserrat_48, 0);
     lv_obj_set_style_text_color(battery_label, lv_palette_main(LV_PALETTE_GREEN), 0);
     lv_obj_set_style_bg_color(battery_label, lv_color_black(), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(battery_label, LV_OPA_COVER, LV_PART_MAIN);
@@ -171,17 +176,18 @@ void dash_create2(void)
     lv_obj_align(battery_label, LV_ALIGN_BOTTOM_RIGHT, -10, -10);
 
         // === RIGHT-SIDE SENSOR LABELS (Middle Right) ===
-    lv_coord_t label_x = SCREEN_WIDTH - 10;  // Align near right edge
-    lv_coord_t label_y = SCREEN_HEIGHT / 2 - 80;
+    lv_coord_t label_x = SCREEN_WIDTH -35;  // Align near right edge
+    lv_coord_t label_y = SCREEN_HEIGHT / 2 - 50;
 
     // Coolant Temp
     coolant_label = lv_label_create(primary_data);
     lv_obj_set_style_text_font(coolant_label, &lv_font_montserrat_16, 0);
     lv_label_set_text(coolant_label, "Coolant:");
+    lv_obj_set_style_text_color(coolant_label, lv_palette_main(LV_PALETTE_GREY), 0);
     lv_obj_align(coolant_label, LV_ALIGN_TOP_RIGHT, -120, label_y);
 
     coolant_temp_label = lv_label_create(primary_data);
-    lv_obj_set_style_text_font(coolant_temp_label, &lv_font_montserrat_24, 0);
+    lv_obj_set_style_text_font(coolant_temp_label, &lv_font_montserrat_36, 0);
     lv_obj_set_style_text_color(coolant_temp_label, lv_palette_main(LV_PALETTE_RED), 0);
     lv_label_set_text(coolant_temp_label, "--");
     lv_obj_align_to(coolant_temp_label, coolant_label, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
@@ -190,10 +196,11 @@ void dash_create2(void)
     lv_obj_t *oil_label = lv_label_create(primary_data);
     lv_obj_set_style_text_font(oil_label, &lv_font_montserrat_16, 0);
     lv_label_set_text(oil_label, "Oil Temp:");
+    lv_obj_set_style_text_color(oil_label, lv_palette_main(LV_PALETTE_GREY), 0);
     lv_obj_align_to(oil_label, coolant_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 10);
 
     oil_temp_label = lv_label_create(primary_data);
-    lv_obj_set_style_text_font(oil_temp_label, &lv_font_montserrat_24, 0);
+    lv_obj_set_style_text_font(oil_temp_label, &lv_font_montserrat_36, 0);
     lv_obj_set_style_text_color(oil_temp_label, lv_palette_main(LV_PALETTE_ORANGE), 0);
     lv_label_set_text(oil_temp_label, "--");
     lv_obj_align_to(oil_temp_label, oil_label, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
@@ -202,10 +209,11 @@ void dash_create2(void)
     lv_obj_t *oil_ps_label = lv_label_create(primary_data);
     lv_obj_set_style_text_font(oil_ps_label, &lv_font_montserrat_16, 0);
     lv_label_set_text(oil_ps_label, "Oil PSI:");
+    lv_obj_set_style_text_color(oil_ps_label, lv_palette_main(LV_PALETTE_GREY), 0);
     lv_obj_align_to(oil_ps_label, oil_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 10);
 
     oil_pressure_label = lv_label_create(primary_data);
-    lv_obj_set_style_text_font(oil_pressure_label, &lv_font_montserrat_24, 0);
+    lv_obj_set_style_text_font(oil_pressure_label, &lv_font_montserrat_36, 0);
     lv_obj_set_style_text_color(oil_pressure_label, lv_palette_main(LV_PALETTE_PURPLE), 0);
     lv_label_set_text(oil_pressure_label, "--");
     lv_obj_align_to(oil_pressure_label, oil_ps_label, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
@@ -214,10 +222,11 @@ void dash_create2(void)
     lv_obj_t *fuel_label = lv_label_create(primary_data);
     lv_obj_set_style_text_font(fuel_label, &lv_font_montserrat_16, 0);
     lv_label_set_text(fuel_label, "Fuel PSI:");
+    lv_obj_set_style_text_color(fuel_label, lv_palette_main(LV_PALETTE_GREY), 0);
     lv_obj_align_to(fuel_label, oil_ps_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 10);
 
     fuel_pressure_label = lv_label_create(primary_data);
-    lv_obj_set_style_text_font(fuel_pressure_label, &lv_font_montserrat_24, 0);
+    lv_obj_set_style_text_font(fuel_pressure_label, &lv_font_montserrat_36, 0);
     lv_obj_set_style_text_color(fuel_pressure_label, lv_palette_main(LV_PALETTE_BLUE), 0);
     lv_label_set_text(fuel_pressure_label, "--");
     lv_obj_align_to(fuel_pressure_label, fuel_label, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
@@ -294,35 +303,52 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
             break;
         }
 
-        case 1136: { // 0x470: Gear
-            uint8_t selector = payload[6];  // Use payload[6]
-            uint8_t gear = payload[7];      // Use payload[7]
 
-            printf("gear value at test.c", gear);
+    case 1136: { // 0x470: Gear
+        uint8_t gear = payload[7];
+        static uint8_t last_gear = 0xFF;  // impossible initial value
 
-            const char *gear_str;
-            switch (gear) {
-                case 0x00: gear_str = "N"; break;
-                case 0x01: gear_str = "1"; break;
-                case 0x02: gear_str = "2"; break;
-                case 0x03: gear_str = "3"; break;
-                case 0x04: gear_str = "4"; break;
-                case 0x05: gear_str = "5"; break;
-                case 0x06: gear_str = "6"; break;
-                case 0x0E: gear_str = "R"; break;
-                case 0x0F: gear_str = "P"; break;
-                case 0xFE:
-                case 0xFF:
-                default:   gear_str = "-"; break;
-            }
+        memcpy(&gear, payload, sizeof(uint8_t));
 
-            if (gear_label && lv_obj_is_valid(gear_label)) {
-                lv_label_set_text(gear_label, gear_str);
-            }
+        printf("gear value at test.c: %d\n", gear);
+        printf("Received CAN ID 0x470: gear=%02X\n", gear);
+        
+        if (gear == 0x00 && last_gear != 0x00 && last_gear != 0x01) {
+            printf("Ignoring bounce to 0\n");
             break;
         }
 
-        case 864: { // 0x360: RPM & Throttle
+        if (gear == last_gear) {
+            break;
+        }
+        else{
+        last_gear = gear;}
+
+        static char gear_str[3];  // Enough for "NN" + null terminator
+
+        if (gear == 0x00) {
+            // Neutral
+            strcpy(gear_str, "N");
+        } else if (last_gear == 0x0E) {
+            strcpy(gear_str, "R");
+        } else if (last_gear == 0x0F) {
+            strcpy(gear_str, "P");
+        } else if (last_gear > 0) {
+            // Convert gear number to string manually
+            gear_str[0] = '0' + last_gear;  // e.g. 5 => '5'
+            gear_str[1] = '\0';
+        } else {
+            strcpy(gear_str, "-");
+        }
+
+        printf("Setting label to: %s\n", gear_str);
+
+        lv_label_set_text(gear_label, gear_str);
+
+        break;
+    }
+
+        case 864: { // 0x360: RPM & Throttle //else if (last_gear >= 1 && last_gear <= 6) {
             if (payload_len >= sizeof(uint16_t) + sizeof(float)) {
                 uint16_t rpm;
                 float throttle;
@@ -352,7 +378,7 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
                         static bool flash = false;
                         flash = !flash; // toggle each time this is called
                         lv_obj_set_style_bg_color(gear_label, flash ? lv_color_hex(0xFF0000) : lv_color_hex(0x000000), 0);
-                    } else if (rpm >= 10200) {
+                    } else if (rpm >= 10000) {
                         // Shift-up warning (solid red background)
                         lv_obj_set_style_bg_color(gear_label, lv_color_hex(0x550000), 0);
                     } else {
