@@ -24,7 +24,6 @@ bool is_accepted_id(uint32_t id) {
     for (int i = 0; i < sizeof(accepted_ids) / sizeof(accepted_ids[0]); i++) {
         if (accepted_ids[i] == id) return true;
         //if (0x470 == id) return true;
-
     }
     return false;
 }
@@ -32,7 +31,7 @@ bool is_accepted_id(uint32_t id) {
 void receive_can_message() {
     twai_message_t received_msg;
     //esp_err_t ret = twai_receive(&received_msg, 500 / portTICK_PERIOD_MS);
-    esp_err_t ret = twai_receive(&received_msg, 62 / portTICK_PERIOD_MS);
+    esp_err_t ret = twai_receive(&received_msg, 5 / portTICK_PERIOD_MS);
 
 
     twai_status_info_t status;
@@ -46,7 +45,7 @@ void receive_can_message() {
 
     if (ret == ESP_OK) {
         uint16_t id = received_msg.identifier;
-        if (!is_accepted_id(id)) return;
+        if (!is_accepted_id(id)) break;
 
         printf("Time: %lu - Received CAN ID: 0x%lX, DLC: %d, Data: ",
                (unsigned long)esp_timer_get_time(), received_msg.identifier, received_msg.data_length_code);
@@ -61,20 +60,8 @@ void receive_can_message() {
         encoded.data[encoded.length++] = id & 0xFF;
 
         switch (id) {
-            case 0x3E0: { // Coolant & Oil Temp
-                float coolant = ((received_msg.data[0] << 8) | received_msg.data[1]) / 10.0f;
-                float oil = ((received_msg.data[6] << 8) | received_msg.data[7]) / 10.0f;
-                coolant = coolant - 273.15f;
-                oil = oil - 273.15f;
-                memcpy(encoded.data + encoded.length, &coolant, sizeof(float));
-                encoded.length += sizeof(float);
-                memcpy(encoded.data + encoded.length, &oil, sizeof(float));
-                encoded.length += sizeof(float);
-                break;
-            }
             case 0x470: {
                 uint8_t gear = received_msg.data[7];
-
                 encoded.data[encoded.length++] = gear;
                 printf("gear value at twai.c: %d\n", gear);
                 break;
@@ -85,6 +72,17 @@ void receive_can_message() {
                 memcpy(encoded.data + encoded.length, &rpm, sizeof(uint16_t));
                 encoded.length += sizeof(uint16_t);
                 memcpy(encoded.data + encoded.length, &throttle, sizeof(float));
+                encoded.length += sizeof(float);
+                break;
+            }
+            case 0x3E0: { // Coolant & Oil Temp
+                float coolant = ((received_msg.data[0] << 8) | received_msg.data[1]) / 10.0f;
+                float oil = ((received_msg.data[6] << 8) | received_msg.data[7]) / 10.0f;
+                coolant = coolant - 273.15f;
+                oil = oil - 273.15f;
+                memcpy(encoded.data + encoded.length, &coolant, sizeof(float));
+                encoded.length += sizeof(float);
+                memcpy(encoded.data + encoded.length, &oil, sizeof(float));
                 encoded.length += sizeof(float);
                 break;
             }
@@ -121,10 +119,10 @@ void receive_can_message() {
                 encoded.length += sizeof(float);
                 break;
             }
-            case 0x3E5: {
+            /*case 0x3E5: {
                 encoded.data[encoded.length++] = received_msg.data[0];
                 break;
-            }
+            }*/
             default:
                 ESP_LOGW(TWAI_TAG, "Unhandled message ID: 0x%03X", id);
                 return;

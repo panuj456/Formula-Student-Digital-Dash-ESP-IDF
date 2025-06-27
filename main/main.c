@@ -49,6 +49,6 @@ void app_main()
     }
     CAN_INIT();
     //xTaskCreatePinnedToCore(CAN_INIT, "CAN Task", 4096, NULL, 5, NULL, 1); // Runs on Core 1 - comment out for testing
-    xTaskCreate(Display_Task, "Dashboard Task", 8192, NULL, 5, NULL);
     xTaskCreate(CAN_Task, "Can Task", 8192, NULL, 5, NULL);
+    xTaskCreate(Display_Task, "Dashboard Task", 8192, NULL, 5, NULL);
 }

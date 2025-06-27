@@ -305,18 +305,20 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
 
 
     case 1136: { // 0x470: Gear
-        uint8_t gear = payload[7];
+        uint8_t gear = payload[7]; //might comment out
         static uint8_t last_gear = 0xFF;  // impossible initial value
 
         memcpy(&gear, payload, sizeof(uint8_t));
 
         printf("gear value at test.c: %d\n", gear);
         printf("Received CAN ID 0x470: gear=%02X\n", gear);
-        
-        if (gear == 0x00 && last_gear != 0x00 && last_gear != 0x01) {
-            printf("Ignoring bounce to 0\n");
+
+        /*
+        if (gear == 0x00 && last_gear <= 0x02) {
+            printf("Ignoring bounce to 0\n"); //slow af apparently
             break;
         }
+            */
 
         if (gear == last_gear) {
             break;
@@ -326,19 +328,28 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
 
         static char gear_str[3];  // Enough for "NN" + null terminator
 
-        if (gear == 0x00) {
-            // Neutral
-            strcpy(gear_str, "N");
-        } else if (last_gear == 0x0E) {
-            strcpy(gear_str, "R");
-        } else if (last_gear == 0x0F) {
-            strcpy(gear_str, "P");
-        } else if (last_gear > 0) {
-            // Convert gear number to string manually
-            gear_str[0] = '0' + last_gear;  // e.g. 5 => '5'
-            gear_str[1] = '\0';
-        } else {
-            strcpy(gear_str, "-");
+        switch (last_gear) {
+            case 0x00:
+                gear_str[0] = 'N';
+                gear_str[1] = '\0';
+                break;
+            case 0x0E:
+                gear_str[0] = 'R';
+                gear_str[1] = '\0';
+                break;
+            case 0x0F:
+                gear_str[0] = 'P';
+                gear_str[1] = '\0';
+                break;
+            default:
+                if (last_gear > 0 && last_gear < 0x0E) {
+                    gear_str[0] = '0' + last_gear;
+                    gear_str[1] = '\0';
+                } else {
+                    gear_str[0] = '-';
+                    gear_str[1] = '\0';
+                }
+                break;
         }
 
         printf("Setting label to: %s\n", gear_str);
@@ -360,7 +371,7 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
 
                 // Update RPM bar and label
                 if (rpm_bar && lv_obj_is_valid(rpm_bar)) {
-                    lv_bar_set_value(rpm_bar, rpm, LV_ANIM_ON);
+                    lv_bar_set_value(rpm_bar, rpm, LV_ANIM_OFF); //turn on if want animation to next value
                 }
                 if (rpm_label && lv_obj_is_valid(rpm_label)) {
                     lv_label_set_text_fmt(rpm_label, "%05d", rpm);
@@ -368,17 +379,17 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
 
                 // Update throttle bar
                 if (throttle_bar && lv_obj_is_valid(throttle_bar)) {
-                    lv_bar_set_value(throttle_bar, (int)throttle, LV_ANIM_ON);
+                    lv_bar_set_value(throttle_bar, (int)throttle, LV_ANIM_OFF); //turn on if want animation to next value
                 }
 
                 // Shift-up logic
                 if (gear_label && lv_obj_is_valid(gear_label)) {
-                    if (rpm >= 11000) {
+                    if (rpm >= 9000) {
                         // Flash gear label red (RPM limiter alert)
                         static bool flash = false;
                         flash = !flash; // toggle each time this is called
                         lv_obj_set_style_bg_color(gear_label, flash ? lv_color_hex(0xFF0000) : lv_color_hex(0x000000), 0);
-                    } else if (rpm >= 10000) {
+                    } else if (rpm >= 8000) {
                         // Shift-up warning (solid red background)
                         lv_obj_set_style_bg_color(gear_label, lv_color_hex(0x550000), 0);
                     } else {
@@ -455,7 +466,7 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
                 if (brake_pressure > 100) brake_pressure = 100;
 
                 if (brake_bar && lv_obj_is_valid(brake_bar)) {
-                    lv_bar_set_value(brake_bar, (int)brake_pressure, LV_ANIM_ON);
+                    lv_bar_set_value(brake_bar, (int)brake_pressure, LV_ANIM_OFF); //turn on if want animation to next value
                 }
             }
             break;
