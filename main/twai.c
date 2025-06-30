@@ -45,7 +45,7 @@ void receive_can_message() {
 
     if (ret == ESP_OK) {
         uint16_t id = received_msg.identifier;
-        if (!is_accepted_id(id)) break;
+        if (!is_accepted_id(id)) return;
 
         printf("Time: %lu - Received CAN ID: 0x%lX, DLC: %d, Data: ",
                (unsigned long)esp_timer_get_time(), received_msg.identifier, received_msg.data_length_code);

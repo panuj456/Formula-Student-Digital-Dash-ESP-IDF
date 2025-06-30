@@ -22,6 +22,7 @@ extern "C" {
  *      INCLUDES
  *********************/
 
+ #include "lv_conf.h"
 #include "src/misc/lv_log.h"
 #include "src/misc/lv_timer.h"
 #include "src/misc/lv_math.h"
