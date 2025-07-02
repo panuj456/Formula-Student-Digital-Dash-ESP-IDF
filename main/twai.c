@@ -19,7 +19,7 @@ extern QueueHandle_t xECU;
 
 bool is_accepted_id(uint32_t id) {
     const uint16_t accepted_ids[] = {
-        0x3E0, 0x470, 0x360, 0x361, 0x370, 0x372, 0x3E9, 0x36B, 0x3E5
+        0x3E0, 0x470, 0x360, 0x361, 0x370, 0x372, 0x3E9, 0x36B, 0x6F3 
     };
     for (int i = 0; i < sizeof(accepted_ids) / sizeof(accepted_ids[0]); i++) {
         if (accepted_ids[i] == id) return true;
@@ -123,6 +123,63 @@ void receive_can_message() {
                 encoded.data[encoded.length++] = received_msg.data[0];
                 break;
             }*/
+           case 0x6F3: {
+                // Tyre pressures
+                float front_pressure = ((received_msg.data[0] << 8) | received_msg.data[1]) / 10.0f - 101.3f;
+                float rear_pressure  = ((received_msg.data[2] << 8) | received_msg.data[3]) / 10.0f - 101.3f;
+                
+                memcpy(encoded.data + encoded.length, &front_pressure, sizeof(float));
+                encoded.length += sizeof(float);
+                memcpy(encoded.data + encoded.length, &rear_pressure, sizeof(float));
+                encoded.length += sizeof(float);
+
+                // Tyre leak booleans packed in byte 4
+                uint8_t leak_flags = received_msg.data[4];
+                bool rr_leak = (leak_flags >> 3) & 0x01;
+                bool rl_leak = (leak_flags >> 2) & 0x01;
+                bool fr_leak = (leak_flags >> 1) & 0x01;
+                bool fl_leak = (leak_flags >> 0) & 0x01;
+
+                encoded.data[encoded.length++] = (uint8_t)(fl_leak);
+                encoded.data[encoded.length++] = (uint8_t)(fr_leak);
+                encoded.data[encoded.length++] = (uint8_t)(rl_leak);
+                encoded.data[encoded.length++] = (uint8_t)(rr_leak);
+
+                // Engine protection severity
+                uint8_t severity = received_msg.data[5];
+                encoded.data[encoded.length++] = severity;
+
+                // Decode Engine Protection DTC (OBD-style)
+                uint16_t raw_dtc = (received_msg.data[6] << 8) | received_msg.data[7];
+                char dtc_letter;
+                uint8_t prefix = (raw_dtc >> 14) & 0x03;
+
+                switch (prefix) {
+                    case 0: dtc_letter = 'P'; break;
+                    case 1: dtc_letter = 'B'; break;
+                    case 2: dtc_letter = 'C'; break;
+                    case 3: dtc_letter = 'U'; break;
+                    default: dtc_letter = '?'; break;
+                }
+
+                uint16_t dtc_number = raw_dtc & 0x3FFF;
+
+                // Optional: Store as ASCII for debugging/serial/log
+                char dtc_code[6];
+                snprintf(dtc_code, sizeof(dtc_code), "%c%04X", dtc_letter, dtc_number);
+
+                // Pack DTC number (raw) as 2 bytes
+                encoded.data[encoded.length++] = (raw_dtc >> 8) & 0xFF;
+                encoded.data[encoded.length++] = raw_dtc & 0xFF;
+
+                // Optionally, if you want the full ASCII version (P2A00 etc.):
+                // memcpy(encoded.data + encoded.length, dtc_code, 5);
+                // encoded.length += 5;
+
+                printf("Parsed DTC: %s, Severity: %u, Tyre FL: %d, FR: %d, RL: %d, RR: %d\n",
+                    dtc_code, severity, fl_leak, fr_leak, rl_leak, rr_leak);
+                break;
+            }
             default:
                 ESP_LOGW(TWAI_TAG, "Unhandled message ID: 0x%03X", id);
                 return;

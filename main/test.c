@@ -22,6 +22,11 @@ LV_FONT_DECLARE(lv_font_montserrat_bold_72);
 #define SCREEN_WIDTH  800
 #define SCREEN_HEIGHT 480
 
+//shifting
+static lv_obj_t *shift_leds[NUM_SHIFT_LEDS];
+static lv_color_t led_colors[NUM_SHIFT_LEDS];  // Current color state
+
+
 static lv_obj_t *rpm_bar;
 static lv_obj_t *rpm_label;
 static lv_obj_t *gear_label;
@@ -128,8 +133,8 @@ void dash_create2(void)
     // Set bar range and initial value
     lv_bar_set_range(brake_bar, 0, 100);  // Pressure % (adjust range if using psi/bar/etc.)
     lv_bar_set_value(brake_bar, 0, LV_ANIM_OFF);
-
-    rpm_bar = lv_bar_create(primary_data);
+    /*
+    rpm_bar = lv_bar_create(primary_data); //want to create light style top of dash shift up
     lv_obj_set_size(rpm_bar, 475, 70);
     lv_obj_align(rpm_bar, LV_ALIGN_TOP_MID, 0, 10);
     lv_obj_set_style_bg_color(rpm_bar, lv_color_hex(0xAAAAAA), 0);
@@ -143,6 +148,9 @@ void dash_create2(void)
     lv_obj_set_style_radius(rpm_bar, 10, LV_PART_MAIN);
     lv_obj_set_style_bg_color(rpm_bar, lv_palette_main(LV_PALETTE_RED), LV_PART_INDICATOR);
     lv_obj_set_style_radius(rpm_bar, 10, LV_PART_INDICATOR);
+    */
+
+    rpm_bar = shift_light_create(primary_data);
         
 
     // RPM Value Label (outside arc)
@@ -249,6 +257,48 @@ void dash_create2(void)
     lv_obj_set_style_text_color(fuel_pressure_label, lv_palette_main(LV_PALETTE_BLUE), 0);
     lv_label_set_text(fuel_pressure_label, "ABC 123");
     lv_obj_align_to(fuel_pressure_label, fuel_label, LV_ALIGN_OUT_RIGHT_MID, 10, 0);  // 10px horizontal gap
+}
+
+lv_obj_t* shift_light_create(lv_obj_t *parent) {
+    lv_coord_t start_x = (lv_obj_get_width(parent) - (NUM_SHIFT_LEDS * SHIFT_LED_WIDTH + (NUM_SHIFT_LEDS - 1) * SHIFT_LED_GAP)) / 2;
+    lv_coord_t y = 10;
+
+    for (int i = 0; i < NUM_SHIFT_LEDS; i++) {
+        shift_leds[i] = lv_obj_create(parent);
+        lv_obj_set_size(shift_leds[i], SHIFT_LED_WIDTH, SHIFT_LED_HEIGHT);
+        lv_obj_clear_flag(shift_leds[i], LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_style_radius(shift_leds[i], LV_RADIUS_CIRCLE, 0);
+        lv_obj_set_style_bg_color(shift_leds[i], lv_color_black(), 0);
+        lv_obj_set_style_bg_opa(shift_leds[i], LV_OPA_COVER, 0);
+        lv_obj_align(shift_leds[i], LV_ALIGN_TOP_LEFT, start_x + i * (SHIFT_LED_WIDTH + SHIFT_LED_GAP), y);
+
+        led_colors[i] = lv_color_hex(0xAAAAAA);
+    }
+
+    return parent;
+}
+
+void shift_light_update(uint16_t rpm) {
+    for (int i = 0; i < NUM_SHIFT_LEDS; i++) {
+        if (!shift_leds[i] || !lv_obj_is_valid(shift_leds[i])) continue;
+
+        if (rpm >= rpm_thresholds[i]) {
+            // Color based on how far you are in the LED range
+            if (i < NUM_SHIFT_LEDS * 0.6) {
+                // First 60%: green
+                lv_obj_set_style_bg_color(shift_leds[i], lv_color_hex(0x00FF00), 0);
+            } else if (i < NUM_SHIFT_LEDS * 0.85) {
+                // Next ~25%: yellow
+                lv_obj_set_style_bg_color(shift_leds[i], lv_color_hex(0xFFFF00), 0);
+            } else {
+                // Final ~15%: red
+                lv_obj_set_style_bg_color(shift_leds[i], lv_color_hex(0xFF0000), 0);
+            }
+        } else {
+            // Dim/off
+            lv_obj_set_style_bg_color(shift_leds[i], lv_color_hex(0x222222), 0);
+        }
+    }
 }
 
 
@@ -389,6 +439,9 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
                 if (rpm_label && lv_obj_is_valid(rpm_label)) {
                     lv_label_set_text_fmt(rpm_label, "%05d", rpm);
                 }
+
+                // Update shift lights here
+                shift_light_update(rpm);
 
                 // Update throttle bar
                 if (throttle_bar && lv_obj_is_valid(throttle_bar)) {
@@ -544,7 +597,71 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
             }
             break;
         }
+                case 1779: { // 0x6F3: Tyre Pressure + DTCs
+            if (payload_len < 8) break; // safety check
 
+            // Tyre pressure
+            uint16_t front_raw = (payload[0] << 8) | payload[1];
+            uint16_t rear_raw  = (payload[2] << 8) | payload[3];
+            float front_kpa = front_raw / 10.0f - 101.3f;
+            float rear_kpa  = rear_raw / 10.0f - 101.3f;
+
+            // Tyre leak flags
+            uint8_t tyre_bits = payload[4];
+            bool rear_right_leak  = (tyre_bits >> 3) & 0x01;
+            bool rear_left_leak   = (tyre_bits >> 2) & 0x01;
+            bool front_right_leak = (tyre_bits >> 1) & 0x01;
+            bool front_left_leak  = (tyre_bits >> 0) & 0x01;
+
+            // Engine protection severity
+            uint8_t severity = payload[5];
+
+            // DTC (Diagnostic Trouble Code)
+            uint16_t raw_dtc = (payload[6] << 8) | payload[7];
+
+            char dtc_letter;
+            uint8_t prefix = (raw_dtc >> 14) & 0x03;
+            switch (prefix) {
+                case 0: dtc_letter = 'P'; break;
+                case 1: dtc_letter = 'B'; break;
+                case 2: dtc_letter = 'C'; break;
+                case 3: dtc_letter = 'U'; break;
+                default: dtc_letter = '?'; break;
+            }
+
+            uint16_t dtc_number = raw_dtc & 0x3FFF;
+
+            char dtc_str[8];
+            snprintf(dtc_str, sizeof(dtc_str), "%c%04X", dtc_letter, dtc_number);
+
+            // Output
+            printf("Front Tyre Pressure: %.1f kPa\n", front_kpa);
+            printf("Rear Tyre Pressure:  %.1f kPa\n", rear_kpa);
+            printf("Leaks - FL:%d FR:%d RL:%d RR:%d\n",
+                   front_left_leak, front_right_leak, rear_left_leak, rear_right_leak);
+            printf("Engine Protection Severity: %d\n", severity);
+            printf("Engine DTC: %s\n", dtc_str);
+
+            if (dtc_letter == 'P') {
+                switch (dtc_number) {
+                    case 0x2A00:
+                        printf("Fault: Wideband 1 Sensor Failure\n");
+                        break;
+                    case 0x0101:
+                        printf("Fault: Coolant Temp Sensor\n");
+                        break;
+                    case 0x0307:
+                        printf("Fault: Knock Sensor\n");
+                        break;
+                    default:
+                        printf("Unknown Powertrain DTC\n");
+                }
+            } else {
+                printf("Non-Powertrain DTC received: %s\n", dtc_str);
+            }
+
+            break;
+        }
         default: {
             // Unknown ID
             break;
