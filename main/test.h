@@ -15,16 +15,16 @@
 #define MAX_FIELDS    2  // Or higher if needed
 
 //shifting rpm rev limitter
-#define NUM_SHIFT_LEDS 10
+#define NUM_SHIFT_LEDS 14
 #define SHIFT_LED_WIDTH 20
-#define SHIFT_LED_HEIGHT 10
-#define SHIFT_LED_GAP 4
-#define RPM_MIN 3000
+#define SHIFT_LED_HEIGHT 20
+#define SHIFT_LED_GAP 15
+#define RPM_MIN 1000
 #define RPM_MAX 11200
 
 // Example thresholds (adjust to your engine)
 static const uint16_t rpm_thresholds[NUM_SHIFT_LEDS] = {
-    2000, 3000, 4000, 5000, 6000, 7000, 7500, 8000, 8500, 9000
+    1500, 2000, 3000, 4000, 5000, 6000, 7000, 7500, 8000, 8500, 9000, 9500, 10000, 10800
 };
 
 static lv_obj_t *rpm_arc;

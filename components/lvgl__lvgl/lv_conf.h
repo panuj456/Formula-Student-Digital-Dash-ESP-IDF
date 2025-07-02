@@ -401,6 +401,7 @@
  *E.g. #define LV_FONT_CUSTOM_DECLARE   LV_FONT_DECLARE(my_font_1) LV_FONT_DECLARE(my_font_2)*/
 #define LV_FONT_CUSTOM_DECLARE LV_FONT_DECLARE(lv_font_montserrat_72) 1
 #define LV_FONT_CUSTOM_DECLARE LV_FONT_DECLARE(lv_font_montserrat_bold_72) 1
+#define LV_FONT_CUSTOM_DECLARE LV_FONT_DECLARE(lv_font_montserrat_bold_96) 1
 
 /*Always set a default font*/
 #define LV_FONT_DEFAULT &lv_font_montserrat_36

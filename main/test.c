@@ -18,6 +18,9 @@ LV_FONT_DECLARE(lv_font_montserrat_72);
 extern const lv_font_t lv_font_montserrat_bold_72;
 LV_FONT_DECLARE(lv_font_montserrat_bold_72);
 
+extern const lv_font_t lv_font_montserrat_bold_96;
+LV_FONT_DECLARE(lv_font_montserrat_bold_96);
+
 
 #define SCREEN_WIDTH  800
 #define SCREEN_HEIGHT 480
@@ -41,6 +44,7 @@ static lv_obj_t *throttle_label;
 static lv_obj_t *battery_label;
 static lv_obj_t *coolant_label;
 static lv_obj_t *brake_label;
+static lv_obj_t *severity_value_label, *dtc_code_label;
 
 lv_obj_t *coolant_temp_label;
 lv_obj_t *oil_temp_label;
@@ -133,22 +137,30 @@ void dash_create2(void)
     // Set bar range and initial value
     lv_bar_set_range(brake_bar, 0, 100);  // Pressure % (adjust range if using psi/bar/etc.)
     lv_bar_set_value(brake_bar, 0, LV_ANIM_OFF);
-    /*
-    rpm_bar = lv_bar_create(primary_data); //want to create light style top of dash shift up
-    lv_obj_set_size(rpm_bar, 475, 70);
-    lv_obj_align(rpm_bar, LV_ALIGN_TOP_MID, 0, 10);
-    lv_obj_set_style_bg_color(rpm_bar, lv_color_hex(0xAAAAAA), 0);
-    lv_obj_set_style_border_width(rpm_bar, 10, 0);
-    lv_bar_set_range(rpm_bar, 0, 12000); // example range
-    lv_bar_set_value(rpm_bar, 0, LV_ANIM_OFF);
-    lv_obj_clear_flag(rpm_bar, LV_OBJ_FLAG_SCROLLABLE);
+    
+    //DTC
+    lv_obj_t *dtc_container = lv_obj_create(primary_data);
+    lv_obj_set_size(dtc_container, 180, 100);
+    lv_obj_align_to(dtc_container, brake_bar, LV_ALIGN_OUT_RIGHT_MID, 20, 20);
+    lv_obj_set_style_bg_color(dtc_container, lv_color_black(), 0);
+    lv_obj_set_style_border_width(dtc_container, 2, 0);
+    lv_obj_set_style_border_color(dtc_container, lv_color_hex(0x555555), 0);
+    lv_obj_clear_flag(dtc_container, LV_OBJ_FLAG_SCROLLABLE);
 
-    // Style bar
-    lv_obj_set_style_bg_color(rpm_bar, lv_color_make(30, 30, 30), LV_PART_MAIN);
-    lv_obj_set_style_radius(rpm_bar, 10, LV_PART_MAIN);
-    lv_obj_set_style_bg_color(rpm_bar, lv_palette_main(LV_PALETTE_RED), LV_PART_INDICATOR);
-    lv_obj_set_style_radius(rpm_bar, 10, LV_PART_INDICATOR);
-    */
+    lv_obj_t *severity_label = lv_label_create(dtc_container);
+    lv_label_set_text(severity_label, "Severity:");
+    lv_obj_set_style_text_color(severity_label, lv_palette_main(LV_PALETTE_GREY), 0);
+    lv_obj_align(severity_label, LV_ALIGN_BOTTOM_LEFT, 10, -40);
+
+    lv_obj_t *severity_value_label = lv_label_create(dtc_container);
+    lv_label_set_text(severity_value_label, "-");
+    lv_obj_set_style_text_color(severity_value_label, lv_palette_main(LV_PALETTE_RED), 0);
+    lv_obj_align_to(severity_value_label, severity_label, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
+
+    lv_obj_t *dtc_code_label = lv_label_create(dtc_container);
+    lv_label_set_text(dtc_code_label, "DTC: ----");
+    lv_obj_set_style_text_color(dtc_code_label, lv_palette_main(LV_PALETTE_ORANGE), 0);
+    lv_obj_align(dtc_code_label, LV_ALIGN_BOTTOM_LEFT, 10, -15);
 
     rpm_bar = shift_light_create(primary_data);
         
@@ -160,24 +172,24 @@ void dash_create2(void)
     lv_obj_set_style_text_color(rpm_label, lv_palette_main(LV_PALETTE_RED), 0);
     lv_obj_set_style_bg_color(rpm_label, lv_color_hex(0xAAAAAA), LV_PART_MAIN); //lv_color_black()
     lv_obj_set_style_bg_opa(rpm_label, LV_OPA_COVER, LV_PART_MAIN);    
-    lv_obj_align_to(rpm_label, rpm_bar, LV_ALIGN_CENTER, 0, 80); //fix later
+    lv_obj_align_to(rpm_label, rpm_bar, LV_ALIGN_TOP_MID, -200, 60); //fix later
 
     lv_obj_t *rpm_unit_label = lv_label_create(primary_data);
     lv_label_set_text(rpm_unit_label, "RPM");
     lv_obj_set_style_text_font(rpm_unit_label, &lv_font_montserrat_16, 0);
     lv_obj_set_style_text_color(rpm_unit_label, lv_color_hex(0x999999), 0);
-    lv_obj_align_to(rpm_unit_label, rpm_bar, LV_ALIGN_CENTER, 0, 125);
+    lv_obj_align_to(rpm_unit_label, rpm_bar, LV_ALIGN_TOP_MID, -200, 125);
 
     
-    // --- Gear Label ---
+    // --- Gear Label --- create a container for this in future like DTC
     gear_label = lv_label_create(primary_data);
-    lv_obj_set_style_text_font(gear_label, &lv_font_montserrat_bold_72, 0); //works with 48
+    lv_obj_set_style_text_font(gear_label, &lv_font_montserrat_bold_96, 0); //works with 48
     lv_obj_set_style_text_color(gear_label, lv_palette_main(LV_PALETTE_YELLOW), 0);
-    lv_label_set_text(gear_label, "ABC 123");
+    lv_label_set_text(gear_label, "B");
     // Set background color and opacity
     lv_obj_set_style_bg_color(gear_label,  lv_color_hex(0xAAAAAA), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(gear_label, LV_OPA_COVER, LV_PART_MAIN);    
-    lv_obj_align(gear_label, LV_ALIGN_CENTER, 0, 30);
+    lv_obj_align(gear_label, LV_ALIGN_CENTER, 0, -30);
 
     // --- Speed Label ---
     speed_label = lv_label_create(primary_data);
@@ -260,7 +272,7 @@ void dash_create2(void)
 }
 
 lv_obj_t* shift_light_create(lv_obj_t *parent) {
-    lv_coord_t start_x = (lv_obj_get_width(parent) - (NUM_SHIFT_LEDS * SHIFT_LED_WIDTH + (NUM_SHIFT_LEDS - 1) * SHIFT_LED_GAP)) / 2;
+    lv_coord_t start_x = (800 - (NUM_SHIFT_LEDS * SHIFT_LED_WIDTH + (NUM_SHIFT_LEDS - 1) * SHIFT_LED_GAP)) / 2;
     lv_coord_t y = 10;
 
     for (int i = 0; i < NUM_SHIFT_LEDS; i++) {
@@ -268,7 +280,7 @@ lv_obj_t* shift_light_create(lv_obj_t *parent) {
         lv_obj_set_size(shift_leds[i], SHIFT_LED_WIDTH, SHIFT_LED_HEIGHT);
         lv_obj_clear_flag(shift_leds[i], LV_OBJ_FLAG_SCROLLABLE);
         lv_obj_set_style_radius(shift_leds[i], LV_RADIUS_CIRCLE, 0);
-        lv_obj_set_style_bg_color(shift_leds[i], lv_color_black(), 0);
+        lv_obj_set_style_bg_color(shift_leds[i], lv_color_hex(0xAAAAAA), 0);
         lv_obj_set_style_bg_opa(shift_leds[i], LV_OPA_COVER, 0);
         lv_obj_align(shift_leds[i], LV_ALIGN_TOP_LEFT, start_x + i * (SHIFT_LED_WIDTH + SHIFT_LED_GAP), y);
 
@@ -290,9 +302,12 @@ void shift_light_update(uint16_t rpm) {
             } else if (i < NUM_SHIFT_LEDS * 0.85) {
                 // Next ~25%: yellow
                 lv_obj_set_style_bg_color(shift_leds[i], lv_color_hex(0xFFFF00), 0);
-            } else {
-                // Final ~15%: red
+            } else if (i < NUM_SHIFT_LEDS * 0.95) {
+                // Next ~10%: red
                 lv_obj_set_style_bg_color(shift_leds[i], lv_color_hex(0xFF0000), 0);
+            } else {
+                // Final ~5%: purple
+                lv_obj_set_style_bg_color(shift_leds[i], lv_color_hex(0x800080), 0);  // Purple
             }
         } else {
             // Dim/off
@@ -597,21 +612,8 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
             }
             break;
         }
-                case 1779: { // 0x6F3: Tyre Pressure + DTCs
+        case 1779: { // 0x6F3: Tyre Pressure + DTCs
             if (payload_len < 8) break; // safety check
-
-            // Tyre pressure
-            uint16_t front_raw = (payload[0] << 8) | payload[1];
-            uint16_t rear_raw  = (payload[2] << 8) | payload[3];
-            float front_kpa = front_raw / 10.0f - 101.3f;
-            float rear_kpa  = rear_raw / 10.0f - 101.3f;
-
-            // Tyre leak flags
-            uint8_t tyre_bits = payload[4];
-            bool rear_right_leak  = (tyre_bits >> 3) & 0x01;
-            bool rear_left_leak   = (tyre_bits >> 2) & 0x01;
-            bool front_right_leak = (tyre_bits >> 1) & 0x01;
-            bool front_left_leak  = (tyre_bits >> 0) & 0x01;
 
             // Engine protection severity
             uint8_t severity = payload[5];
@@ -631,14 +633,22 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
 
             uint16_t dtc_number = raw_dtc & 0x3FFF;
 
-            char dtc_str[8];
-            snprintf(dtc_str, sizeof(dtc_str), "%c%04X", dtc_letter, dtc_number);
+            // Build dtc_str manually without snprintf, format: [Letter][4 hex digits]
+            char dtc_str[7]; // 1 letter + 4 hex chars + null terminator
+            dtc_str[0] = dtc_letter;
+
+            // Convert dtc_number to uppercase hex chars, 4 digits
+            for (int i = 0; i < 4; i++) {
+                uint8_t nibble = (dtc_number >> (12 - 4*i)) & 0xF;
+                if (nibble < 10) {
+                    dtc_str[i+1] = '0' + nibble;
+                } else {
+                    dtc_str[i+1] = 'A' + (nibble - 10);
+                }
+            }
+            dtc_str[5] = '\0';
 
             // Output
-            printf("Front Tyre Pressure: %.1f kPa\n", front_kpa);
-            printf("Rear Tyre Pressure:  %.1f kPa\n", rear_kpa);
-            printf("Leaks - FL:%d FR:%d RL:%d RR:%d\n",
-                   front_left_leak, front_right_leak, rear_left_leak, rear_right_leak);
             printf("Engine Protection Severity: %d\n", severity);
             printf("Engine DTC: %s\n", dtc_str);
 
@@ -656,11 +666,7 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
                     default:
                         printf("Unknown Powertrain DTC\n");
                 }
-            } else {
-                printf("Non-Powertrain DTC received: %s\n", dtc_str);
             }
-
-            break;
         }
         default: {
             // Unknown ID

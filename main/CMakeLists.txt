@@ -8,6 +8,7 @@ idf_component_register(
         "lv_font_montserrat_48.c"
         "lv_font_montserrat_72.c"
         "lv_font_montserrat_bold_72.c"
+        "lv_font_montserrat_bold_96.c"
         "twai.c"
     INCLUDE_DIRS "."
     REQUIRES lvgl__lvgl
