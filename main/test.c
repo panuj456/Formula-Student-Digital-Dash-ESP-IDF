@@ -296,13 +296,13 @@ void shift_light_update(uint16_t rpm) {
 
         if (rpm >= rpm_thresholds[i]) {
             // Color based on how far you are in the LED range
-            if (i < NUM_SHIFT_LEDS * 0.6) {
+            if (i < NUM_SHIFT_LEDS * 0.4) {
                 // First 60%: green
                 lv_obj_set_style_bg_color(shift_leds[i], lv_color_hex(0x00FF00), 0);
-            } else if (i < NUM_SHIFT_LEDS * 0.85) {
+            } else if (i < NUM_SHIFT_LEDS * 0.75) {
                 // Next ~25%: yellow
                 lv_obj_set_style_bg_color(shift_leds[i], lv_color_hex(0xFFFF00), 0);
-            } else if (i < NUM_SHIFT_LEDS * 0.95) {
+            } else if (i < NUM_SHIFT_LEDS * 0.9) {
                 // Next ~10%: red
                 lv_obj_set_style_bg_color(shift_leds[i], lv_color_hex(0xFF0000), 0);
             } else {
@@ -388,9 +388,6 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
 
         memcpy(&gear, payload, sizeof(uint8_t));
 
-        printf("gear value at test.c: %d\n", gear);
-        printf("Received CAN ID 0x470: gear=%02X\n", gear);
-
         /*
         if (gear == 0x00 && last_gear <= 0x02) {
             printf("Ignoring bounce to 0\n"); //slow af apparently
@@ -429,8 +426,6 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
                 }
                 break;
         }
-
-        printf("Setting label to: %s\n", gear_str);
 
         lv_label_set_text(gear_label, gear_str);
 
