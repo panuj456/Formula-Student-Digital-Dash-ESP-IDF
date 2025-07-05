@@ -46,6 +46,7 @@ static lv_obj_t *coolant_label;
 static lv_obj_t *brake_label;
 static lv_obj_t *severity_value_label, *dtc_code_label;
 
+
 lv_obj_t *coolant_temp_label;
 lv_obj_t *oil_temp_label;
 lv_obj_t *oil_pressure_label;
@@ -141,7 +142,7 @@ void dash_create2(void)
     //DTC
     lv_obj_t *dtc_container = lv_obj_create(primary_data);
     lv_obj_set_size(dtc_container, 180, 100);
-    lv_obj_align_to(dtc_container, brake_bar, LV_ALIGN_OUT_RIGHT_MID, 20, 20);
+    lv_obj_align_to(dtc_container, brake_bar, LV_ALIGN_OUT_RIGHT_MID, 20, 30);
     lv_obj_set_style_bg_color(dtc_container, lv_color_black(), 0);
     lv_obj_set_style_border_width(dtc_container, 2, 0);
     lv_obj_set_style_border_color(dtc_container, lv_color_hex(0x555555), 0);
@@ -172,13 +173,13 @@ void dash_create2(void)
     lv_obj_set_style_text_color(rpm_label, lv_palette_main(LV_PALETTE_RED), 0);
     lv_obj_set_style_bg_color(rpm_label, lv_color_hex(0xAAAAAA), LV_PART_MAIN); //lv_color_black()
     lv_obj_set_style_bg_opa(rpm_label, LV_OPA_COVER, LV_PART_MAIN);    
-    lv_obj_align_to(rpm_label, rpm_bar, LV_ALIGN_TOP_MID, -200, 60); //fix later
+    lv_obj_align_to(rpm_label, rpm_bar, LV_ALIGN_TOP_MID, -200, 90); //fix later
 
     lv_obj_t *rpm_unit_label = lv_label_create(primary_data);
     lv_label_set_text(rpm_unit_label, "RPM");
     lv_obj_set_style_text_font(rpm_unit_label, &lv_font_montserrat_16, 0);
     lv_obj_set_style_text_color(rpm_unit_label, lv_color_hex(0x999999), 0);
-    lv_obj_align_to(rpm_unit_label, rpm_bar, LV_ALIGN_TOP_MID, -200, 125);
+    lv_obj_align_to(rpm_unit_label, rpm_bar, LV_ALIGN_TOP_MID, -200, 145);
 
     
     // --- Gear Label --- create a container for this in future like DTC
@@ -226,34 +227,34 @@ void dash_create2(void)
     lv_obj_align(coolant_label, LV_ALIGN_TOP_RIGHT, -90, label_y);
 
     coolant_temp_label = lv_label_create(primary_data);
-    lv_obj_set_style_text_font(coolant_temp_label, &lv_font_montserrat_36, 0);
+    lv_obj_set_style_text_font(coolant_temp_label, &lv_font_montserrat_48, 0);
     lv_obj_set_style_text_color(coolant_temp_label, lv_palette_main(LV_PALETTE_RED), 0);
     lv_label_set_text(coolant_temp_label, "ABC 123");
-    lv_obj_align_to(coolant_temp_label, coolant_label, LV_ALIGN_OUT_RIGHT_MID, 10, 0);  // 10px horizontal gap
+    lv_obj_align_to(coolant_temp_label, coolant_label, LV_ALIGN_OUT_RIGHT_MID, 5, 0);  // 10px horizontal gap
 
     // Oil Temp
     lv_obj_t *oil_label = lv_label_create(primary_data);
     lv_obj_set_style_text_font(oil_label, &lv_font_montserrat_12, 0);
     lv_label_set_text(oil_label, "Oil Temp (°C)");
     lv_obj_set_style_text_color(oil_label, lv_palette_main(LV_PALETTE_GREY), 0);
-    lv_obj_align_to(oil_label, coolant_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 20);  // 10px vertical gap
+    lv_obj_align_to(oil_label, coolant_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 30);  // 10px vertical gap
 
     oil_temp_label = lv_label_create(primary_data);
-    lv_obj_set_style_text_font(oil_temp_label, &lv_font_montserrat_36, 0);
+    lv_obj_set_style_text_font(oil_temp_label, &lv_font_montserrat_48, 0);
     lv_obj_set_style_text_color(oil_temp_label, lv_palette_main(LV_PALETTE_ORANGE), 0);
     lv_label_set_text(oil_temp_label, "ABC 123");
-    lv_obj_align_to(oil_temp_label, oil_label, LV_ALIGN_OUT_RIGHT_MID, 10, 0);  // 10px horizontal gap
+    lv_obj_align_to(oil_temp_label, oil_label, LV_ALIGN_OUT_RIGHT_MID, 5, 0);  // 10px horizontal gap
 
     // Oil Pressure
     lv_obj_t *oil_ps_label = lv_label_create(primary_data);
     lv_obj_set_style_text_font(oil_ps_label, &lv_font_montserrat_12, 0);
     lv_label_set_text(oil_ps_label, "Oil PSI");
     lv_obj_set_style_text_color(oil_ps_label, lv_palette_main(LV_PALETTE_GREY), 0);
-    lv_obj_align_to(oil_ps_label, oil_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 20);  // 10px vertical gap
+    lv_obj_align_to(oil_ps_label, oil_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 30);  // 10px vertical gap
 
     oil_pressure_label = lv_label_create(primary_data);
     lv_obj_set_style_text_font(oil_pressure_label, &lv_font_montserrat_36, 0);
-    lv_obj_set_style_text_color(oil_pressure_label, lv_palette_main(LV_PALETTE_PURPLE), 0);
+    lv_obj_set_style_text_color(oil_pressure_label, lv_palette_main(LV_PALETTE_GREEN), 0);
     lv_label_set_text(oil_pressure_label, "ABC 123");
     lv_obj_align_to(oil_pressure_label, oil_ps_label, LV_ALIGN_OUT_RIGHT_MID, 10, 0);  // 10px horizontal gap
 
@@ -262,7 +263,7 @@ void dash_create2(void)
     lv_obj_set_style_text_font(fuel_label, &lv_font_montserrat_12, 0);
     lv_label_set_text(fuel_label, "Fuel PSI:");
     lv_obj_set_style_text_color(fuel_label, lv_palette_main(LV_PALETTE_GREY), 0);
-    lv_obj_align_to(fuel_label, oil_ps_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 20);  // 10px vertical gap
+    lv_obj_align_to(fuel_label, oil_ps_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 30);  // 10px vertical gap
 
     fuel_pressure_label = lv_label_create(primary_data);
     lv_obj_set_style_text_font(fuel_pressure_label, &lv_font_montserrat_36, 0);
@@ -273,7 +274,7 @@ void dash_create2(void)
 
 lv_obj_t* shift_light_create(lv_obj_t *parent) {
     lv_coord_t start_x = (800 - (NUM_SHIFT_LEDS * SHIFT_LED_WIDTH + (NUM_SHIFT_LEDS - 1) * SHIFT_LED_GAP)) / 2;
-    lv_coord_t y = 10;
+    lv_coord_t y = 50;
 
     for (int i = 0; i < NUM_SHIFT_LEDS; i++) {
         shift_leds[i] = lv_obj_create(parent);
@@ -375,6 +376,7 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
 
                     lv_label_set_text(oil_temp_label, &buf[start]);
                     lv_obj_invalidate(oil_temp_label);
+                    break;
                 }
             }
             break;
@@ -432,50 +434,51 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
         break;
     }
 
-        case 864: { // 0x360: RPM & Throttle //else if (last_gear >= 1 && last_gear <= 6) {
-            if (payload_len >= sizeof(uint16_t) + sizeof(float)) {
-                uint16_t rpm;
-                float throttle;
-                memcpy(&rpm, payload, sizeof(uint16_t));
-                memcpy(&throttle, payload + sizeof(uint16_t), sizeof(float));
+    case 864: { // 0x360: RPM & Throttle //else if (last_gear >= 1 && last_gear <= 6) {
+        if (payload_len >= sizeof(uint16_t) + sizeof(float)) {
+            uint16_t rpm;
+            float throttle;
+            memcpy(&rpm, payload, sizeof(uint16_t));
+            memcpy(&throttle, payload + sizeof(uint16_t), sizeof(float));
 
-                // Limit RPM to max display value
-                if (rpm > 11500) rpm = 11500;
+            // Limit RPM to max display value
+            if (rpm > 11500) rpm = 11500;
 
-                // Update RPM bar and label
-                if (rpm_bar && lv_obj_is_valid(rpm_bar)) {
-                    lv_bar_set_value(rpm_bar, rpm, LV_ANIM_OFF); //turn on if want animation to next value
-                }
-                if (rpm_label && lv_obj_is_valid(rpm_label)) {
-                    lv_label_set_text_fmt(rpm_label, "%05d", rpm);
-                }
+            /*
+            // Update RPM bar and label
+            if (rpm_bar && lv_obj_is_valid(rpm_bar)) {
+                lv_bar_set_value(rpm_bar, rpm, LV_ANIM_OFF); //turn on if want animation to next value
+            } */
+            if (rpm_label && lv_obj_is_valid(rpm_label)) {
+                lv_label_set_text_fmt(rpm_label, "%05d", rpm);
+            }
 
-                // Update shift lights here
-                shift_light_update(rpm);
+            // Update shift lights here
+            shift_light_update(rpm);
 
-                // Update throttle bar
-                if (throttle_bar && lv_obj_is_valid(throttle_bar)) {
-                    lv_bar_set_value(throttle_bar, (int)throttle, LV_ANIM_OFF); //turn on if want animation to next value
-                }
+            // Update throttle bar
+            if (throttle_bar && lv_obj_is_valid(throttle_bar)) {
+                lv_bar_set_value(throttle_bar, (int)throttle, LV_ANIM_OFF); //turn on if want animation to next value
+            }
 
-                // Shift-up logic
-                if (gear_label && lv_obj_is_valid(gear_label)) {
-                    if (rpm >= 10800) { //to 11000
-                        // Flash gear label red (RPM limiter alert)
-                        static bool flash = false;
-                        flash = !flash; // toggle each time this is called
-                        lv_obj_set_style_bg_color(gear_label, flash ? lv_color_hex(0xFF0000) : lv_color_hex(0x000000), 0);
-                    } else if (rpm >= 9000) {
-                        // Shift-up warning (solid red background)
-                        lv_obj_set_style_bg_color(gear_label, lv_color_hex(0x550000), 0);
-                    } else {
-                        // Normal background
-                        lv_obj_set_style_bg_color(gear_label, lv_color_hex(0x000000), 0);
-                    }
+            // Shift-up logic
+            if (gear_label && lv_obj_is_valid(gear_label)) {
+                if (rpm >= 10800) { //to 11000
+                    // Flash gear label red (RPM limiter alert)
+                    static bool flash = false;
+                    flash = !flash; // toggle each time this is called
+                    lv_obj_set_style_bg_color(gear_label, flash ? lv_color_hex(0xFF0000) : lv_color_hex(0x000000), 0);
+                } else if (rpm >= 9000) {
+                    // Shift-up warning (solid red background)
+                    lv_obj_set_style_bg_color(gear_label, lv_color_hex(0x550000), 0);
+                } else {
+                    // Normal background
+                    lv_obj_set_style_bg_color(gear_label, lv_color_hex(0x000000), 0);
                 }
             }
-            break;
         }
+        break;
+    }
 
     case 865: { // 0x361: Fuel & Oil Pressure
         if (payload_len >= 2 * sizeof(float)) {
@@ -527,57 +530,58 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
             // Optional: update any progress bars here
 
         } else {
-            printf("Invalid payload length for fuel/oil pressure: %d\n", payload_len);
+            //printf("Invalid payload length for fuel/oil pressure: %d\n", payload_len);
+            break;
         }
         break;
     }
 
-        case 875: { // 0x36B: Brake Pressure
-            if (payload_len >= sizeof(float)) {
-                float brake_pressure;
-                memcpy(&brake_pressure, payload, sizeof(float));
+    case 875: { // 0x36B: Brake Pressure
+        if (payload_len >= sizeof(float)) {
+            float brake_pressure;
+            memcpy(&brake_pressure, payload, sizeof(float));
 
-                // Clamp to valid bar range (0–100) to prevent UI issues
-                if (brake_pressure < 0) brake_pressure = 0;
-                if (brake_pressure > 100) brake_pressure = 100;
+            // Clamp to valid bar range (0–100) to prevent UI issues
+            if (brake_pressure < 0) brake_pressure = 0;
+            if (brake_pressure > 100) brake_pressure = 100;
 
-                if (brake_bar && lv_obj_is_valid(brake_bar)) {
-                    lv_bar_set_value(brake_bar, (int)brake_pressure, LV_ANIM_OFF); //turn on if want animation to next value
-                }
+            if (brake_bar && lv_obj_is_valid(brake_bar)) {
+                lv_bar_set_value(brake_bar, (int)brake_pressure, LV_ANIM_OFF); //turn on if want animation to next value
             }
-            break;
         }
+        break;
+    }
 
-        case 880: { // 0x370: Vehicle Speed
-            //printf("Speed payload bytes: %02X %02X %02X %02X\n", payload[0], payload[1], payload[2], payload[3]);
-            if (payload_len >= sizeof(float)) {
-                float speed_float;
-                memcpy(&speed_float, payload, sizeof(float));
-                int speed = (int)speed_float;
+    case 880: { // 0x370: Vehicle Speed
+        //printf("Speed payload bytes: %02X %02X %02X %02X\n", payload[0], payload[1], payload[2], payload[3]);
+        if (payload_len >= sizeof(float)) {
+            float speed_float;
+            memcpy(&speed_float, payload, sizeof(float));
+            int speed = (int)speed_float;
 
-                printf("Speed: %03d\n", speed);
+            //printf("Speed: %03d\n", speed);
 
-                if (speed_label && lv_obj_is_valid(speed_label)) {
-                    // Build a 3-digit zero-padded string manually (e.g., "005", "120")
-                    char buf[4];
-                    buf[0] = '0' + (speed / 100) % 10;
-                    buf[1] = '0' + (speed / 10) % 10;
-                    buf[2] = '0' + speed % 10;
-                    buf[3] = '\0';
+            if (speed_label && lv_obj_is_valid(speed_label)) {
+                // Build a 3-digit zero-padded string manually (e.g., "005", "120")
+                char buf[4];
+                buf[0] = '0' + (speed / 100) % 10;
+                buf[1] = '0' + (speed / 10) % 10;
+                buf[2] = '0' + speed % 10;
+                buf[3] = '\0';
 
-                    lv_label_set_text(speed_label, buf);
-                    lv_obj_invalidate(speed_label);
-                }
+                lv_label_set_text(speed_label, buf);
+                lv_obj_invalidate(speed_label);
             }
-            break;
         }
+        break;
+    }
 
     case 882: { // Battery voltage
-        printf("Voltage payload bytes: %02X %02X %02X %02X\n", payload[0], payload[1], payload[2], payload[3]);
+        //printf("Voltage payload bytes: %02X %02X %02X %02X\n", payload[0], payload[1], payload[2], payload[3]);
         if (payload_len >= sizeof(float)) {
             float voltage;
             memcpy(&voltage, payload, sizeof(float));
-            printf("Voltage: %.2f\n", voltage);
+            //printf("Voltage: %.2f\n", voltage);
 
             if (battery_label && lv_obj_is_valid(battery_label)) {
                 // Manually build string for voltage without using sprintf
@@ -644,8 +648,8 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
             dtc_str[5] = '\0';
 
             // Output
-            printf("Engine Protection Severity: %d\n", severity);
-            printf("Engine DTC: %s\n", dtc_str);
+            //printf("Engine Protection Severity: %d\n", severity);
+            //printf("Engine DTC: %s\n", dtc_str);
 
             if (dtc_letter == 'P') {
                 switch (dtc_number) {
@@ -683,6 +687,36 @@ float swap_float_bytes(const uint8_t *data) {
     return val;
 }
 
+/*
+void lv_tick_task(void* arg) {
+    lv_tick_inc(1);  // Inform LVGL that 1ms has passed
+}
+
+
+void init_lvgl_tick_timer(void) {
+    static const esp_timer_create_args_t lvgl_tick_timer_args = {
+        .callback = &lv_tick_task,
+        .arg = NULL,
+        .name = "lv_tick"
+    };
+
+    static esp_timer_handle_t lvgl_tick_timer = NULL;
+    ESP_ERROR_CHECK(esp_timer_create(&lvgl_tick_timer_args, &lvgl_tick_timer));
+    ESP_ERROR_CHECK(esp_timer_start_periodic(lvgl_tick_timer, 1000)); // 1ms = 1000us
+}
+
+void LVGL_Task(void *pvParameters) {
+    const TickType_t xDelay = pdMS_TO_TICKS(1); // Call every 1ms
+    while (1) {
+        if (lvgl_port_lock(-1)) {
+            lv_timer_handler();  // Refresh GUI
+            lvgl_port_unlock();
+        }
+        vTaskDelay(xDelay);
+    }
+}
+    */
+
 void Display_Task(void *pvParameters) {
     encoded_message_t msg;
     while (1) {
@@ -692,6 +726,6 @@ void Display_Task(void *pvParameters) {
                 lvgl_port_unlock();
             }
         }
-        vTaskDelay(pdMS_TO_TICKS(5));
+        //vTaskDelay(pdMS_TO_TICKS(1));
     }
 }
