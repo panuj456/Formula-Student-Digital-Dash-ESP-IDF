@@ -5,6 +5,8 @@
  */
 
 #include "waveshare_rgb_lcd_port.h"
+#include "esp_lcd_panel_rgb.h"
+#include "test.h"  // or wherever my_lcd_panel_handle is declared
 
 // VSYNC event callback function
 IRAM_ATTR static bool rgb_lcd_on_vsync_event(esp_lcd_panel_handle_t panel, const esp_lcd_rgb_panel_event_data_t *edata, void *user_ctx)
@@ -74,7 +76,7 @@ void waveshare_esp32_s3_touch_reset()
 esp_err_t waveshare_esp32_s3_rgb_lcd_init()
 {
     ESP_LOGI(TAG, "Install RGB LCD panel driver"); // Log the start of the RGB LCD panel driver installation
-    esp_lcd_panel_handle_t panel_handle = NULL; // Declare a handle for the LCD panel
+    esp_lcd_panel_handle_t panel_handle = NULL; // Declare a handle for the LCD panel - local
     esp_lcd_rgb_panel_config_t panel_config = {
         .clk_src = LCD_CLK_SRC_DEFAULT, // Set the clock source for the panel
         .timings =  {
@@ -130,6 +132,7 @@ esp_err_t waveshare_esp32_s3_rgb_lcd_init()
 
     ESP_LOGI(TAG, "Initialize RGB LCD panel"); // Log the initialization of the RGB LCD panel
     ESP_ERROR_CHECK(esp_lcd_panel_init(panel_handle)); // Initialize the LCD panel
+    my_lcd_panel_handle = panel_handle; //global declaration matches
 
     esp_lcd_touch_handle_t tp_handle = NULL; // Declare a handle for the touch panel
 #if CONFIG_EXAMPLE_LCD_TOUCH_CONTROLLER_GT911

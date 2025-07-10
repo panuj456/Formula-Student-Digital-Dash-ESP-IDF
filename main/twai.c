@@ -17,6 +17,9 @@ static const char *TWAI_TAG = "TWAI";
 
 extern QueueHandle_t xECU;
 
+esp_lcd_panel_handle_t my_lcd_panel_handle = NULL; //get rid if not work
+
+
 bool is_accepted_id(uint32_t id) {
     const uint16_t accepted_ids[] = {
         0x3E0, 0x470, 0x360, 0x361, 0x370, 0x372, 0x3E9, 0x36B, 0x6F3 
