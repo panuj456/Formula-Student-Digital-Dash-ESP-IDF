@@ -21,8 +21,8 @@ extern void CAN_INIT();
 
 void app_main()
 {
-    xECU = xQueueCreate(5, sizeof(encoded_message_t));
-    //xECU = xQueueCreate(1, sizeof(encoded_message_t));
+    xECU = xQueueCreate(1, sizeof(encoded_message_t));
+    //xECU = xQueueCreate(1, CAN_MSG_SIZE); //uint8_t
     if (xECU == NULL) {
         ESP_LOGE(TAG_MAIN,"Failed to create ECU queue= %p",xECU); // Failed to create the queue.
     }
@@ -36,17 +36,27 @@ void app_main()
     if (lvgl_port_lock(-1)) {
         lvgl_display_init(); //check this
         dash_create2();
+<<<<<<< HEAD
         CAN_INIT();
+=======
+>>>>>>> parent of d89d2d7 (Working Version with TaskDelay(1))
         // Release the mutex
         lvgl_port_unlock();
+
     }
+<<<<<<< HEAD
     //CAN_INIT(); //it was here when working if breaks - logic i believe can is initiing every loop
     
     init_lvgl_tick_timer();
     
+=======
+    CAN_INIT();
+    //xTaskCreatePinnedToCore(CAN_INIT, "CAN Task", 4096, NULL, 5, NULL, 1); // Runs on Core 1 - comment out for testing
+>>>>>>> parent of d89d2d7 (Working Version with TaskDelay(1))
     xTaskCreate(CAN_Task, "Can Task", 8192, NULL, 5, NULL);
     xTaskCreate(LVGL_Task, "LVGL Task", 8192, NULL, 5, NULL);
     xTaskCreate(Display_Task, "Dashboard Task", 8192, NULL, 5, NULL);
+<<<<<<< HEAD
     /*
     //Dont use pinning unless performance drops to 50%+ CPU usage
     xTaskCreatePinnedToCore(CAN_Task, "CAN Task", 8192, NULL, 5, NULL, 1);       // Core 1
@@ -55,4 +65,6 @@ void app_main()
     */
 
     vTaskDelay(pdMS_TO_TICKS(1));
+=======
+>>>>>>> parent of d89d2d7 (Working Version with TaskDelay(1))
 }
