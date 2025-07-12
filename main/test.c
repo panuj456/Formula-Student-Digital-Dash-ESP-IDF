@@ -393,17 +393,11 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
                         while (start < 3 && buf[start] == '0') start++;
                         if (start == 3) start--;
 
-<<<<<<< HEAD
                         lv_label_set_text(oil_temp_label, &buf[start]);
                         lv_obj_invalidate(oil_temp_label);
                         break;
                     }
                 });
-=======
-                    lv_label_set_text(oil_temp_label, &buf[start]);
-                    lv_obj_invalidate(oil_temp_label);
-                }
->>>>>>> parent of d89d2d7 (Working Version with TaskDelay(1))
             }
             break;
         }
@@ -469,26 +463,25 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
                 // Limit RPM to max display value
                 if (rpm > 11500) rpm = 11500;
 
-<<<<<<< HEAD
+
             /*
             // Update RPM bar and label
             if (rpm_bar && lv_obj_is_valid(rpm_bar)) {
                 lv_bar_set_value(rpm_bar, rpm, LV_ANIM_OFF); //turn on if want animation to next value
             } */
            UPDATE_IF_CHANGED(last_rpm, rpm, {
-=======
                 // Update RPM bar and label
                 if (rpm_bar && lv_obj_is_valid(rpm_bar)) {
                     lv_bar_set_value(rpm_bar, rpm, LV_ANIM_OFF); //turn on if want animation to next value
                 }
->>>>>>> parent of d89d2d7 (Working Version with TaskDelay(1))
+
                 if (rpm_label && lv_obj_is_valid(rpm_label)) {
                     lv_label_set_text_fmt(rpm_label, "%05d", rpm);
                 }
 
                 // Update shift lights here
                 shift_light_update(rpm);
-<<<<<<< HEAD
+
             });
 
             // Update throttle bar
@@ -497,13 +490,17 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
                     lv_bar_set_value(throttle_bar, (int)throttle, LV_ANIM_OFF); //turn on if want animation to next value
                 }
             });
-=======
+
 
                 // Update throttle bar
                 if (throttle_bar && lv_obj_is_valid(throttle_bar)) {
                     lv_bar_set_value(throttle_bar, (int)throttle, LV_ANIM_OFF); //turn on if want animation to next value
                 }
->>>>>>> parent of d89d2d7 (Working Version with TaskDelay(1))
+
+                // Update throttle bar
+                if (throttle_bar && lv_obj_is_valid(throttle_bar)) {
+                    lv_bar_set_value(throttle_bar, (int)throttle, LV_ANIM_OFF); //turn on if want animation to next value
+                }
 
                 // Shift-up logic
                 if (gear_label && lv_obj_is_valid(gear_label)) {
@@ -579,8 +576,6 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
         } else {
             printf("Invalid payload length for fuel/oil pressure: %d\n", payload_len);
         }
-        break;
-    }
 
         case 875: { // 0x36B: Brake Pressure
             if (payload_len >= sizeof(float)) {
@@ -607,7 +602,7 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
 
                 printf("Speed: %03d\n", speed);
 
-<<<<<<< HEAD
+
             UPDATE_IF_CHANGED(last_brake_pressure, brake_pressure, {
                 if (brake_bar && lv_obj_is_valid(brake_bar)) {
                     lv_bar_set_value(brake_bar, (int)brake_pressure, LV_ANIM_OFF); //turn on if want animation to next value
@@ -642,36 +637,20 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
         }
         break;
     }
-=======
-                if (speed_label && lv_obj_is_valid(speed_label)) {
-                    // Build a 3-digit zero-padded string manually (e.g., "005", "120")
-                    char buf[4];
-                    buf[0] = '0' + (speed / 100) % 10;
-                    buf[1] = '0' + (speed / 10) % 10;
-                    buf[2] = '0' + speed % 10;
-                    buf[3] = '\0';
-
-                    lv_label_set_text(speed_label, buf);
-                    lv_obj_invalidate(speed_label);
-                }
             }
             break;
         }
->>>>>>> parent of d89d2d7 (Working Version with TaskDelay(1))
+
 
     case 882: { // Battery voltage
         printf("Voltage payload bytes: %02X %02X %02X %02X\n", payload[0], payload[1], payload[2], payload[3]);
         if (payload_len >= sizeof(float)) {
             float voltage;
             memcpy(&voltage, payload, sizeof(float));
-<<<<<<< HEAD
             //printf("Voltage: %.2f\n", voltage);
             int volts_int = (int)voltage;
             int volts_frac = (int)((voltage - volts_int) * 100);
             int voltage_val = volts_int * 100 + volts_frac;
-=======
-            printf("Voltage: %.2f\n", voltage);
->>>>>>> parent of d89d2d7 (Working Version with TaskDelay(1))
 
             UPDATE_IF_CHANGED(last_voltage_val, voltage_val, {
                 if (battery_label && lv_obj_is_valid(battery_label)) {
@@ -765,7 +744,7 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
             break;
         }
     }
-}
+
 
 
 
@@ -780,7 +759,6 @@ float swap_float_bytes(const uint8_t *data) {
     return val;
 }
 
-<<<<<<< HEAD
 
 void lv_tick_task(void* arg) {
     lv_tick_inc(1);  // Inform LVGL that 1ms has passed
@@ -898,9 +876,6 @@ void LVGL_Task(void *pvParameters) {
     }
 }
     
-
-=======
->>>>>>> parent of d89d2d7 (Working Version with TaskDelay(1))
 void Display_Task(void *pvParameters) {
     encoded_message_t msg;
     while (1) {
@@ -910,12 +885,10 @@ void Display_Task(void *pvParameters) {
                 lvgl_port_unlock();
             }
         }
-<<<<<<< HEAD
+
         vTaskDelay(pdMS_TO_TICKS(16)) // Let the LVGL_Task handle actual drawing/flushing
         //vTaskDelay(pdMS_TO_TICKS(1));
-=======
-        vTaskDelay(pdMS_TO_TICKS(5));
->>>>>>> parent of d89d2d7 (Working Version with TaskDelay(1))
+
     }
 }
 

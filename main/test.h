@@ -3,15 +3,16 @@
 
 #include "lvgl.h"
 <<<<<<< HEAD
+<<<<<<< HEAD
 #include "esp_timer.h"
 #include "esp_lcd_panel_rgb.h"
 #include "driver/gpio.h"
 
-#define portMAX_DELAY ((TickType_t)0xffffffffUL)
-=======
+//#define portMAX_DELAY ((TickType_t)0xffffffffUL)
+
 //#include "lv_meter.h"
 //#include "lv_widgets.h"
->>>>>>> parent of d89d2d7 (Working Version with TaskDelay(1))
+
 
 #define SCREEN_WIDTH  800
 #define SCREEN_HEIGHT 480
@@ -79,12 +80,11 @@ void Display_Task(void *pvParameters);
 float swap_float_bytes(const uint8_t *data);
 void shift_light_update(uint16_t rpm);
 lv_obj_t* shift_light_create(lv_obj_t *parent);
-<<<<<<< HEAD
 void LVGL_Task(void *pvParameters);
 void lv_tick_task(void* arg);
 void init_lvgl_tick_timer(void);
 void flush_cb(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *color_p);
-
+void decode_and_dispatch(const encoded_message_t *encoded_msg);
 void lvgl_display_init(void *pvParameters) 
 
 //size_t decode_message(const uint8_t *buffer, void *fields_out[]);
@@ -93,8 +93,4 @@ void lvgl_display_init(void *pvParameters)
 
 #endif /* TEST_H */
 =======
-//size_t decode_message(const uint8_t *buffer, void *fields_out[]);
 
-
-#endif /* LVGL_DEMO_H */
->>>>>>> parent of d89d2d7 (Working Version with TaskDelay(1))
