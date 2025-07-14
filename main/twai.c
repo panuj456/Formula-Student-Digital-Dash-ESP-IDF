@@ -17,9 +17,6 @@ static const char *TWAI_TAG = "TWAI";
 
 extern QueueHandle_t xECU;
 
-esp_lcd_panel_handle_t my_lcd_panel_handle = NULL; //get rid if not work
-
-
 bool is_accepted_id(uint32_t id) {
     const uint16_t accepted_ids[] = {
         0x3E0, 0x470, 0x360, 0x361, 0x370, 0x372, 0x3E9, 0x36B, 0x6F3 
@@ -30,7 +27,7 @@ bool is_accepted_id(uint32_t id) {
     }
     return false;
 }
-
+//consider higher priority filterug
 void receive_can_message() {
     twai_message_t received_msg;
     //esp_err_t ret = twai_receive(&received_msg, 500 / portTICK_PERIOD_MS);
@@ -50,12 +47,12 @@ void receive_can_message() {
         uint16_t id = received_msg.identifier;
         if (!is_accepted_id(id)) return;
 
-        printf("Time: %lu - Received CAN ID: 0x%lX, DLC: %d, Data: ",
+        /*printf("Time: %lu - Received CAN ID: 0x%lX, DLC: %d, Data: ",
                (unsigned long)esp_timer_get_time(), received_msg.identifier, received_msg.data_length_code);
         for (int i = 0; i < received_msg.data_length_code; i++) {
             printf("%02X ", received_msg.data[i]);
         }
-        printf("\n");
+        printf("\n"); */
 
         encoded_message_t encoded = { .length = 0 };
 
@@ -66,7 +63,7 @@ void receive_can_message() {
             case 0x470: {
                 uint8_t gear = received_msg.data[7];
                 encoded.data[encoded.length++] = gear;
-                printf("gear value at twai.c: %d\n", gear);
+                //printf("gear value at twai.c: %d\n", gear);
                 break;
             }
             case 0x360: {
@@ -168,8 +165,8 @@ void receive_can_message() {
                 uint16_t dtc_number = raw_dtc & 0x3FFF;
 
                 // Optional: Store as ASCII for debugging/serial/log
-                char dtc_code[6];
-                snprintf(dtc_code, sizeof(dtc_code), "%c%04X", dtc_letter, dtc_number);
+                //char dtc_code[6];
+                //snprintf(dtc_code, sizeof(dtc_code), "%c%04X", dtc_letter, dtc_number);
 
                 // Pack DTC number (raw) as 2 bytes
                 encoded.data[encoded.length++] = (raw_dtc >> 8) & 0xFF;
@@ -179,20 +176,28 @@ void receive_can_message() {
                 // memcpy(encoded.data + encoded.length, dtc_code, 5);
                 // encoded.length += 5;
 
-                printf("Parsed DTC: %s, Severity: %u, Tyre FL: %d, FR: %d, RL: %d, RR: %d\n",
-                    dtc_code, severity, fl_leak, fr_leak, rl_leak, rr_leak);
+                //printf("Parsed DTC: %s, Severity: %u, Tyre FL: %d, FR: %d, RL: %d, RR: %d\n",
+                //    dtc_code, severity, fl_leak, fr_leak, rl_leak, rr_leak);
                 break;
             }
             default:
                 ESP_LOGW(TWAI_TAG, "Unhandled message ID: 0x%03X", id);
                 return;
         }
+    BaseType_t status;
 
-        if (xQueueSend(xECU, &encoded, portMAX_DELAY) != pdPASS) {
-            ESP_LOGE(TWAI_TAG, "Failed to send message to xECU queue");
-        }
+    if (id == 0x470 || id == 0x360 || id == 0x36B) {
+        status = xQueueSendToFront(xECU, &encoded, portMAX_DELAY);
+    } else {
+        status = xQueueSend(xECU, &encoded, portMAX_DELAY);
+    }
+
+    if (status != pdPASS) {
+        ESP_LOGE(TWAI_TAG, "Failed to send message to xECU queue");
+    }
     } else if (ret == ESP_ERR_TIMEOUT) {
         ESP_LOGW(TWAI_TAG, "CAN Receive Timeout");
+        
     } else {
         ESP_LOGE(TWAI_TAG, "CAN Receive Failed: %s", esp_err_to_name(ret));
     }
@@ -214,6 +219,6 @@ void CAN_INIT(void) {
 void CAN_Task(void *pvParameters) {
     while (1) {
         receive_can_message();
-        vTaskDelay(pdMS_TO_TICKS(5));
+        vTaskDelay(pdMS_TO_TICKS(1));
     }
 }

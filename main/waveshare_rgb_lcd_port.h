@@ -65,8 +65,6 @@
 
 static const char *TAG = "example";
 
-extern esp_lcd_panel_handle_t my_lcd_panel_handle;
-
 bool example_lvgl_lock(int timeout_ms);
 void example_lvgl_unlock(void);
 

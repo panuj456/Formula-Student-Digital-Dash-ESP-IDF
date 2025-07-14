@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2023-2024 Espressif Systems (Shanghai) CO LTD
+ *
+ * SPDX-License-Identifier: CC0-1.0
+ */
+
 #include "waveshare_rgb_lcd_port.h"
 
 #include "esp_log.h"
@@ -21,46 +27,37 @@ extern void CAN_INIT();
 
 void app_main()
 {
-    xECU = xQueueCreate(1, sizeof(encoded_message_t));
-    //xECU = xQueueCreate(1, CAN_MSG_SIZE); //uint8_t
+    xECU = xQueueCreate(5, sizeof(encoded_message_t));
+    //xECU = xQueueCreate(1, sizeof(encoded_message_t));
     if (xECU == NULL) {
         ESP_LOGE(TAG_MAIN,"Failed to create ECU queue= %p",xECU); // Failed to create the queue.
     }
+        
     configASSERT(xECU);
-    waveshare_esp32_s3_rgb_lcd_init(); // Initialize the Waveshare ESP32-S3 RGB LCD - calls lv_init in lvgl_port_init
+
+    waveshare_esp32_s3_rgb_lcd_init(); // Initialize the Waveshare ESP32-S3 RGB LCD and lv_init
     // wavesahre_rgb_lcd_bl_on();  //Turn on the screen backlight 
     // wavesahre_rgb_lcd_bl_off(); //Turn off the screen backlight 
     
     ESP_LOGI(TAG_MAIN, "LVGL display initialisation");
     // Lock the mutex due to the LVGL APIs are not thread-safe
     if (lvgl_port_lock(-1)) {
-        lvgl_display_init(); //check this
         dash_create2();
-
-
-
+        //CAN_INIT();
         // Release the mutex
         lvgl_port_unlock();
-
     }
-
-    //CAN_INIT(); //it was here when working if breaks - logic i believe can is initiing every loop
-    
-    init_lvgl_tick_timer();
-
-    CAN_INIT();
+    CAN_INIT(); //it was here when working if breaks - logic i believe can is initiing every loop
+    //init_lvgl_tick_timer();
     //xTaskCreatePinnedToCore(CAN_INIT, "CAN Task", 4096, NULL, 5, NULL, 1); // Runs on Core 1 - comment out for testing
     xTaskCreate(CAN_Task, "Can Task", 8192, NULL, 5, NULL);
-    xTaskCreate(LVGL_Task, "LVGL Task", 8192, NULL, 5, NULL);
     xTaskCreate(Display_Task, "Dashboard Task", 8192, NULL, 5, NULL);
-
+    xTaskCreate(LVGL_Task, "LVGL Task", 8192, NULL, 5, NULL);
     /*
-    //Dont use pinning unless performance drops to 50%+ CPU usage
-    xTaskCreatePinnedToCore(CAN_Task, "CAN Task", 8192, NULL, 5, NULL, 1);       // Core 1
-    xTaskCreatePinnedToCore(Display_Task, "Display Task", 8192, NULL, 5, NULL, 0); // Core 0
-    xTaskCreatePinnedToCore(LVGL_Task, "LVGL Task", 8192, NULL, 5, NULL, 0);     // Core 0
+    xTaskCreatePinnedToCore(CAN_Task, "CAN Task", 8192, NULL, 5, NULL, 1);      // Core 0: Real-time CAN task
+    xTaskCreatePinnedToCore(Display_Task, "Dashboard Task", 8192, NULL, 4, NULL, 1); // Core 1: UI decode task
+    xTaskCreatePinnedToCore(LVGL_Task, "LVGL Task", 8192, NULL, 3, NULL, 0);        // Core 1: LVGL loop
     */
-
-    vTaskDelay(pdMS_TO_TICKS(1));
-
+    
+    //vTaskDelay(pdMS_TO_TICKS(1));
 }
