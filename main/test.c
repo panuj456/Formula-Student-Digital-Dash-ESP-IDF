@@ -711,7 +711,7 @@ void LVGL_Task(void *pvParameters) {
             lv_timer_handler();
             lvgl_port_unlock();
         }
-        vTaskDelay(pdMS_TO_TICKS(5)); // 200hz
+        vTaskDelay(pdMS_TO_TICKS(30)); // 200hz 16ms for 60FPS, 30ms for ~33FPS
     }
 }
 
@@ -722,17 +722,13 @@ void Display_Task(void *pvParameters) {
 
     encoded_message_t msg;
 
-    while (1) {
-        
+    while (1) { 
         if (xQueueReceive(xECU, &msg, 0) == pdPASS) {
             if (lvgl_port_lock(-1)) {
                 decode_and_dispatch(&msg);
                 lvgl_port_unlock();
             }
         }
-
-            lvgl_port_unlock();
-        }
-
         vTaskDelay(pdMS_TO_TICKS(1));
+    }
 }

@@ -1,6 +1,7 @@
 #ifndef TWAI_H_
 #define TWAI_H_
 
+#include "driver/twai.h"
 #include <stdint.h>
 #include <stddef.h>
 #include "freertos/queue.h"
