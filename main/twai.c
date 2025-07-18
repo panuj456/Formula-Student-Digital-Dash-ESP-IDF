@@ -30,20 +30,22 @@ bool is_accepted_id(uint32_t id) {
 //consider higher priority filterug
 void receive_can_message() {
     twai_message_t received_msg;
-    //esp_err_t ret = twai_receive(&received_msg, 5 / portTICK_PERIOD_MS);
-    esp_err_t ret; //twai_receive(&received_msg, pdMS_TO_TICKS(1000));
+    esp_err_t ret = twai_receive(&received_msg, 5 / portTICK_PERIOD_MS);
+    //esp_err_t ret = twai_receive(&received_msg, pdMS_TO_TICKS(5));
 
 
     twai_status_info_t status;
     twai_get_status_info(&status);
 
+    /*
     ESP_LOGI(TWAI_TAG, "Time: %lu, TX ERR: %u, RX ERR: %u, State: %u",
              (unsigned long)esp_timer_get_time(),
              (unsigned int)status.tx_error_counter,
              (unsigned int)status.rx_error_counter,
              (unsigned int)status.state);
+    */
 
-    if (twai_receive(&received_msg, pdMS_TO_TICKS(50)) == ESP_OK) {
+    if (ret == ESP_OK) {
         uint16_t id = received_msg.identifier;
         if (!is_accepted_id(id)) return;
 
@@ -71,8 +73,10 @@ void receive_can_message() {
                 uint16_t rpm = (received_msg.data[0] << 8) | received_msg.data[1];
                 float throttle = ((received_msg.data[4] << 8) | received_msg.data[5]) / 10.0f;
                 memcpy(encoded.data + encoded.length, &rpm, sizeof(uint16_t));
+                //*(uint16_t *)(encoded.data + encoded.length) = rpm;
                 encoded.length += sizeof(uint16_t);
                 memcpy(encoded.data + encoded.length, &throttle, sizeof(float));
+                //*(float *)(encoded.data + encoded.length) = throttle;
                 encoded.length += sizeof(float);
                 break;
             }
@@ -82,8 +86,10 @@ void receive_can_message() {
                 coolant = coolant - 273.15f;
                 oil = oil - 273.15f;
                 memcpy(encoded.data + encoded.length, &coolant, sizeof(float));
+                //*(float *)(encoded.data + encoded.length) = coolant;
                 encoded.length += sizeof(float);
                 memcpy(encoded.data + encoded.length, &oil, sizeof(float));
+                //*(float *)(encoded.data + encoded.length) = oil;
                 encoded.length += sizeof(float);
                 break;
             }
@@ -91,26 +97,31 @@ void receive_can_message() {
                 float fuel = ((received_msg.data[0] << 8) | received_msg.data[1]) / 10.0f - 101.3f;
                 float oilp = ((received_msg.data[2] << 8) | received_msg.data[3]) / 10.0f - 101.3f;
                 memcpy(encoded.data + encoded.length, &fuel, sizeof(float));
+                //*(float *)(encoded.data + encoded.length) = fuel;
                 encoded.length += sizeof(float);
                 memcpy(encoded.data + encoded.length, &oilp, sizeof(float));
+                //*(float *)(encoded.data + encoded.length) = oilp;
                 encoded.length += sizeof(float);
                 break;
             }
             case 0x36B: {
                 float brake = ((received_msg.data[0] << 8) | received_msg.data[1]) / 10.0f - 101.3f;
                 memcpy(encoded.data + encoded.length, &brake, sizeof(float));
+                //*(float *)(encoded.data + encoded.length) = brake;
                 encoded.length += sizeof(float);
                 break;
             }
             case 0x370: {
                 float speed = ((received_msg.data[0] << 8) | received_msg.data[1]) / 10.0f;
                 memcpy(encoded.data + encoded.length, &speed, sizeof(float));
+                //*(float *)(encoded.data + encoded.length) = speed;
                 encoded.length += sizeof(float);
                 break;
             }
             case 0x372: {
                 float voltage = ((received_msg.data[0] << 8) | received_msg.data[1]) / 10.0f;
                 memcpy(encoded.data + encoded.length, &voltage, sizeof(float));
+                //*(float *)(encoded.data + encoded.length) = voltage;
                 encoded.length += sizeof(float);
                 break;
             }
@@ -223,6 +234,6 @@ void CAN_Task(void *pvParameters) {
     encoded_message_t msg;
     while (1) {
         receive_can_message();
-        vTaskDelay(pdMS_TO_TICKS(10));
+        vTaskDelay(pdMS_TO_TICKS(1));
     }
 }

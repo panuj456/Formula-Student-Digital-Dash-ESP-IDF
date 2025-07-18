@@ -335,9 +335,9 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
 
         case 992: { // 0x3E0: Coolant & Oil Temp
             if (payload_len >= 2 * sizeof(float)) {
-                float coolant_temp, oil_temp;
-                memcpy(&coolant_temp, payload, sizeof(float));
-                memcpy(&oil_temp, payload + sizeof(float), sizeof(float));
+                //float coolant_temp, oil_temp;
+                float coolant_temp = *((float *)(payload));
+                float oil_temp = *((float *)(payload + sizeof(float)));
 
                 // Update coolant temp label
                 if (coolant_temp_label && lv_obj_is_valid(coolant_temp_label)) {
@@ -397,7 +397,7 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
         uint8_t gear = payload[7]; //might comment out
         static uint8_t last_gear = 0xFF;  // impossible initial value
 
-        memcpy(&gear, payload, sizeof(uint8_t));
+        gear = payload;
 
         /*
         if (gear == 0x00 && last_gear <= 0x02) {
@@ -447,14 +447,13 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
 
     case 864: { // 0x360: RPM & Throttle //else if (last_gear >= 1 && last_gear <= 6) {
         if (payload_len >= sizeof(uint16_t) + sizeof(float)) {
-            uint16_t rpm;
-            float throttle;
-            memcpy(&rpm, payload, sizeof(uint16_t));
-            memcpy(&throttle, payload + sizeof(uint16_t), sizeof(float));
+
+            uint16_t rpm = *((uint16_t *)(payload));
+            float throttle = *((float *)(payload + sizeof(float)));
 
         static uint32_t last_throttlerpm_time = 0;
         uint32_t now = xTaskGetTickCount();
-        if ((now - last_throttlerpm_time) && < pdMS_TO_TICKS(10)) break;
+        if ((now - last_throttlerpm_time) < pdMS_TO_TICKS(10)) break;
         last_throttlerpm_time = now;
 
             // Limit RPM to max display value
@@ -523,9 +522,8 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
 
     case 865: { // 0x361: Fuel & Oil Pressure
         if (payload_len >= 2 * sizeof(float)) {
-            float fuel_pressure, oil_pressure;
-            memcpy(&fuel_pressure, payload, sizeof(float));
-            memcpy(&oil_pressure, payload + sizeof(float), sizeof(float));
+            float fuel_pressure = *((float *)(payload));
+            float oil_pressure = *((float *)(payload + sizeof(float)));
 
             // Convert to integer * 10 for 1 decimal place, e.g. 12.3 -> 123
             int fuel_val = (int)(fuel_pressure * 10);
@@ -584,8 +582,7 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
 
         last_brake_time = now;
         if (payload_len >= sizeof(float)) {
-            float brake_pressure;
-            memcpy(&brake_pressure, payload, sizeof(float));
+            float brake_pressure = *((float *)(payload));
 
             // Clamp to valid bar range (0–100) to prevent UI issues
             if (brake_pressure < 0) brake_pressure = 0;
@@ -605,11 +602,9 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
     case 880: { // 0x370: Vehicle Speed
         //printf("Speed payload bytes: %02X %02X %02X %02X\n", payload[0], payload[1], payload[2], payload[3]);
         if (payload_len >= sizeof(float)) {
-            float speed_float;
-            memcpy(&speed_float, payload, sizeof(float));
+            float speed_float = *((float *)(payload));
             int speed = (int)speed_float;
 
-            //printf("Speed: %03d\n", speed);
 
             if (speed_label && lv_obj_is_valid(speed_label)) {
                 // Build a 3-digit zero-padded string manually (e.g., "005", "120")
@@ -633,8 +628,7 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
     case 882: { // Battery voltage
         //printf("Voltage payload bytes: %02X %02X %02X %02X\n", payload[0], payload[1], payload[2], payload[3]);
         if (payload_len >= sizeof(float)) {
-            float voltage;
-            memcpy(&voltage, payload, sizeof(float));
+            float voltage = *((float *)(payload));
             //printf("Voltage: %.2f\n", voltage);
 
             if (battery_label && lv_obj_is_valid(battery_label)) {
@@ -663,8 +657,7 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
 
     case 1001: { // 0x3E9: Lambda
             if (payload_len >= sizeof(float)) {
-                float lambda;
-                memcpy(&lambda, payload, sizeof(float));
+                float lambda = *((float *)(payload));
                 // Optional: update lambda display
             }
             break;
