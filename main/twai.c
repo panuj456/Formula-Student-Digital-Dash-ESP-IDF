@@ -30,8 +30,8 @@ bool is_accepted_id(uint32_t id) {
 //consider higher priority filterug
 void receive_can_message() {
     twai_message_t received_msg;
-    //esp_err_t ret = twai_receive(&received_msg, 500 / portTICK_PERIOD_MS);
-    esp_err_t ret = twai_receive(&received_msg, pdMS_TO_TICKS(1000));
+    //esp_err_t ret = twai_receive(&received_msg, 5 / portTICK_PERIOD_MS);
+    esp_err_t ret; //twai_receive(&received_msg, pdMS_TO_TICKS(1000));
 
 
     twai_status_info_t status;
@@ -43,7 +43,7 @@ void receive_can_message() {
              (unsigned int)status.rx_error_counter,
              (unsigned int)status.state);
 
-    if (ret == ESP_OK) {
+    if (twai_receive(&received_msg, pdMS_TO_TICKS(50)) == ESP_OK) {
         uint16_t id = received_msg.identifier;
         if (!is_accepted_id(id)) return;
 
@@ -188,9 +188,11 @@ void receive_can_message() {
     BaseType_t status;
 
     if (id == 0x470 || id == 0x360 || id == 0x36B) {
-        status = xQueueSendToFront(xECU, &encoded, portMAX_DELAY);
+        //status = xQueueSendToFront(xECU, &encoded, portMAX_DELAY);
+        status = xQueueSendToFront(xECU, &encoded, 0);
     } else {
-        status = xQueueSend(xECU, &encoded, portMAX_DELAY);
+        //status = xQueueSend(xECU, &encoded, portMAX_DELAY);
+        status = xQueueSend(xECU, &encoded, 0);
     }
 
     if (status != pdPASS) {

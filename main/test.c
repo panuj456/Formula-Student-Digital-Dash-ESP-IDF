@@ -360,6 +360,7 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
                     lv_obj_invalidate(coolant_temp_label);
                     lvgl_port_unlock();
                     }
+                    break;
                 }
 
                 // Update oil temp label
@@ -382,8 +383,9 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
                         lv_label_set_text(oil_temp_label, &buf[start]);
                         lv_obj_invalidate(oil_temp_label);
                         lvgl_port_unlock();
-                        break;
+                        
                     }
+                    break;
                 }
             }
             break;
@@ -438,7 +440,6 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
             lv_label_set_text(gear_label, gear_str);
             //lv_obj_invalidate(gear_label);
             lvgl_port_unlock();
-            break;
             }
 
         break;
@@ -451,6 +452,11 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
             memcpy(&rpm, payload, sizeof(uint16_t));
             memcpy(&throttle, payload + sizeof(uint16_t), sizeof(float));
 
+        static uint32_t last_throttlerpm_time = 0;
+        uint32_t now = xTaskGetTickCount();
+        if ((now - last_throttlerpm_time) && < pdMS_TO_TICKS(10)) break;
+        last_throttlerpm_time = now;
+
             // Limit RPM to max display value
             if (rpm > 11500) rpm = 11500;
 
@@ -461,24 +467,14 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
             } */
             if (rpm_label && lv_obj_is_valid(rpm_label)) {
                 if (lvgl_port_lock(-1)) {
-                    lv_label_set_text_fmt(rpm_label, "%05d", rpm);
+                    lv_label_set_text(rpm_label, rpm);
                     lvgl_port_unlock();
-                    //break;
                 }
+                break;
             }
 
             // Update shift lights here
             shift_light_update(rpm);
-
-            // Update throttle bar
-            if (throttle_bar && lv_obj_is_valid(throttle_bar)) {
-                if (lvgl_port_lock(-1)) {
-                    lv_bar_set_value(throttle_bar, (int)throttle, LV_ANIM_OFF); //turn on if want animation to next value
-                    lv_obj_invalidate(throttle_bar);
-                    lvgl_port_unlock();
-                    //break;
-                    }
-            }
 
             // Shift-up logic
             if (gear_label && lv_obj_is_valid(gear_label)) {
@@ -489,23 +485,37 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
                     if (lvgl_port_lock(-1)) {
                         lv_obj_set_style_bg_color(gear_label, flash ? lv_color_hex(0xFF0000) : lv_color_hex(0x000000), 0);
                         lvgl_port_unlock();
-                    //break;
                     }
                 } else if (rpm >= 9000) {
                     // Shift-up warning (solid red background)
                     if (lvgl_port_lock(-1)) {
                         lv_obj_set_style_bg_color(gear_label, lv_color_hex(0x550000), 0);
                         lvgl_port_unlock();
-                    //break;
                     }
-                } else {
+                }else if (rpm <= 3000) {
+                    // Low rev warning (solid red background)
+                    if (lvgl_port_lock(-1)) {
+                        lv_obj_set_style_bg_color(gear_label, lv_color_hex(0x880000), 0);
+                        lvgl_port_unlock();
+                    }
+                }  else {
                     // Normal background
                     if (lvgl_port_lock(-1)) {
                         lv_obj_set_style_bg_color(gear_label, lv_color_hex(0x000000), 0);
                     lvgl_port_unlock();
-                    //break;
                     }
+                    break;
                 }
+
+            // Update throttle bar
+            if (throttle_bar && lv_obj_is_valid(throttle_bar)) {
+                if (lvgl_port_lock(-1)) {
+                    lv_bar_set_value(throttle_bar, (int)throttle, LV_ANIM_OFF); //turn on if want animation to next value
+                    lv_obj_invalidate(throttle_bar);
+                    lvgl_port_unlock();
+                    }
+                    break;
+            }
             }
         }
         break;
@@ -540,8 +550,8 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
                         lv_label_set_text(fuel_pressure_label, &buf[start]);
                         lv_obj_invalidate(fuel_pressure_label);
                         lvgl_port_unlock();
-                        //break;
                         }
+                    break;
             }
 
             if (oil_pressure_label && lv_obj_is_valid(oil_pressure_label)) {
@@ -560,13 +570,19 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
                         lv_label_set_text(oil_pressure_label, &buf[start]);
                         lv_obj_invalidate(oil_pressure_label);
                         lvgl_port_unlock();
-                            //break;
                         }
+                    break;
                 } 
         break;
     }
 
     case 875: { // 0x36B: Brake Pressure
+
+        static uint32_t last_brake_time = 0;
+        uint32_t now = xTaskGetTickCount();
+        if ((now - last_brake_time) < pdMS_TO_TICKS(10)) break;
+
+        last_brake_time = now;
         if (payload_len >= sizeof(float)) {
             float brake_pressure;
             memcpy(&brake_pressure, payload, sizeof(float));
@@ -579,8 +595,8 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
                 if (lvgl_port_lock(-1)) {
                     lv_bar_set_value(brake_bar, (int)brake_pressure, LV_ANIM_OFF); //turn on if want animation to next value
                     lvgl_port_unlock();
-                    //break;
                 }
+                break;
             }
         }
         break;
@@ -607,8 +623,8 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
                     lv_label_set_text(speed_label, buf);
                     lv_obj_invalidate(speed_label);
                     lvgl_port_unlock();
-                    //break;
                 }
+                break;
             }
         }
         break;
@@ -638,14 +654,14 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
                     lv_label_set_text(battery_label, buf);
                     lv_obj_invalidate(battery_label);  // refresh label
                     lvgl_port_unlock();
-                    //break;
                 }
+                break;
             }
         }
         break;
     }
 
-        case 1001: { // 0x3E9: Lambda
+    case 1001: { // 0x3E9: Lambda
             if (payload_len >= sizeof(float)) {
                 float lambda;
                 memcpy(&lambda, payload, sizeof(float));
@@ -679,33 +695,35 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
         }
         dtc_str[5] = '\0';
 
+        /*
         if (dtc_letter == 'P') {
             switch (dtc_number) {
                 case 0x2A00:
-                    printf("Fault: Wideband 1 Sensor Failure\n");
+                    //printf("Fault: Wideband 1 Sensor Failure\n");
                     break;
                 case 0x0101:
-                    printf("Fault: Coolant Temp Sensor\n");
+                    //printf("Fault: Coolant Temp Sensor\n");
                     break;
                 case 0x0307:
-                    printf("Fault: Knock Sensor\n");
+                    //printf("Fault: Knock Sensor\n");
                     break;
                 default:
-                    printf("Unknown Powertrain DTC\n");
+                    //printf("Unknown Powertrain DTC\n");
                     break;
             }
         }
+        */
 
         if (dtc_code_label && lv_obj_is_valid(dtc_code_label)) {
             if (lvgl_port_lock(-1)) {
-                lv_label_set_text_fmt(dtc_code_label, "DTC: %s", dtc_str);
+                lv_label_set_text(dtc_code_label, dtc_str);
                 lvgl_port_unlock();
             }
         }
 
         if (dtc_severity_label && lv_obj_is_valid(dtc_severity_label)) {
                 if (lvgl_port_lock(-1)) {
-                    lv_label_set_text_fmt(dtc_severity_label, "Severity: %u", severity);
+                    lv_label_set_text(dtc_severity_label, severity);
                     lvgl_port_unlock();
                 }
             }
@@ -750,10 +768,7 @@ void lv_tick_task(void* arg) {
 
 void LVGL_Task(void *pvParameters) {
     while (1) {
-        if (lvgl_port_lock(-1)) { //10??
-            lv_timer_handler();
-            lvgl_port_unlock();
-        }
+        lv_timer_handler();
         vTaskDelay(pdMS_TO_TICKS(30)); // 200hz 16ms for 60FPS, 30ms for ~33FPS
     }
 }

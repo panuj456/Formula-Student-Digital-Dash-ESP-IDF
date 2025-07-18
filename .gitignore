@@ -4,3 +4,4 @@ build/
 test2.c
 test2.h
 dependencies.lock
+managed_components
