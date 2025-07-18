@@ -31,7 +31,7 @@ bool is_accepted_id(uint32_t id) {
 void receive_can_message() {
     twai_message_t received_msg;
     //esp_err_t ret = twai_receive(&received_msg, 500 / portTICK_PERIOD_MS);
-    esp_err_t ret = twai_receive(&received_msg, 5 / portTICK_PERIOD_MS);
+    esp_err_t ret = twai_receive(&received_msg, pdMS_TO_TICKS(1000));
 
 
     twai_status_info_t status;
@@ -47,7 +47,8 @@ void receive_can_message() {
         uint16_t id = received_msg.identifier;
         if (!is_accepted_id(id)) return;
 
-        /*printf("Time: %lu - Received CAN ID: 0x%lX, DLC: %d, Data: ",
+        /* //Checking tool
+        printf("Time: %lu - Received CAN ID: 0x%lX, DLC: %d, Data: ",
                (unsigned long)esp_timer_get_time(), received_msg.identifier, received_msg.data_length_code);
         for (int i = 0; i < received_msg.data_length_code; i++) {
             printf("%02X ", received_msg.data[i]);
@@ -119,7 +120,7 @@ void receive_can_message() {
                 encoded.length += sizeof(float);
                 break;
             }
-            /*case 0x3E5: {
+            /*case 0x3E5: { //ignition switch
                 encoded.data[encoded.length++] = received_msg.data[0];
                 break;
             }*/
@@ -217,8 +218,9 @@ void CAN_INIT(void) {
 }
 
 void CAN_Task(void *pvParameters) {
+    encoded_message_t msg;
     while (1) {
         receive_can_message();
-        vTaskDelay(pdMS_TO_TICKS(1));
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
 }

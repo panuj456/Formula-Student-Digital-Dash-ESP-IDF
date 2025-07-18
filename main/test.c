@@ -29,6 +29,9 @@ LV_FONT_DECLARE(lv_font_montserrat_bold_96);
 static lv_obj_t *shift_leds[NUM_SHIFT_LEDS];
 static lv_color_t led_colors[NUM_SHIFT_LEDS];  // Current color state
 
+static uint16_t dtc_code = 0;
+static lv_obj_t *dtc_severity_label = NULL;
+static uint8_t severity = 0;
 
 static lv_obj_t *rpm_bar;
 static lv_obj_t *rpm_label;
@@ -58,6 +61,9 @@ LV_FONT_DECLARE(lv_font_montserrat_48);
 LV_FONT_DECLARE(lv_font_montserrat_36);
 LV_FONT_DECLARE(lv_font_montserrat_16);
 LV_FONT_DECLARE(lv_font_montserrat_12);
+
+void lv_tick_task(void* arg);  // Forward declaration
+
 
 void dash_create2(void)
 {
@@ -333,11 +339,6 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
                 memcpy(&coolant_temp, payload, sizeof(float));
                 memcpy(&oil_temp, payload + sizeof(float), sizeof(float));
 
-                // Update coolant progress bar
-                if (temp_bar && lv_obj_is_valid(temp_bar)) {
-                    lv_bar_set_value(temp_bar, (int)coolant_temp, LV_ANIM_ON);
-                }
-
                 // Update coolant temp label
                 if (coolant_temp_label && lv_obj_is_valid(coolant_temp_label)) {
                     int val = (int)(coolant_temp * 10);  // One decimal place
@@ -354,8 +355,11 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
                     while (start < 3 && buf[start] == '0') start++;
                     if (start == 3) start--;  // Keep at least one digit
 
+                    if (lvgl_port_lock(-1)) {
                     lv_label_set_text(coolant_temp_label, &buf[start]);
                     lv_obj_invalidate(coolant_temp_label);
+                    lvgl_port_unlock();
+                    }
                 }
 
                 // Update oil temp label
@@ -373,10 +377,13 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
                     int start = 0;
                     while (start < 3 && buf[start] == '0') start++;
                     if (start == 3) start--;
-
-                    lv_label_set_text(oil_temp_label, &buf[start]);
-                    lv_obj_invalidate(oil_temp_label);
-                    break;
+                    
+                    if (lvgl_port_lock(-1)) {
+                        lv_label_set_text(oil_temp_label, &buf[start]);
+                        lv_obj_invalidate(oil_temp_label);
+                        lvgl_port_unlock();
+                        break;
+                    }
                 }
             }
             break;
@@ -392,8 +399,7 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
 
         /*
         if (gear == 0x00 && last_gear <= 0x02) {
-            printf("Ignoring bounce to 0\n"); //slow af apparently
-            break;
+            return;
         }
             */
 
@@ -428,8 +434,12 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
                 }
                 break;
         }
-
-        lv_label_set_text(gear_label, gear_str);
+        if (lvgl_port_lock(-1)) {
+            lv_label_set_text(gear_label, gear_str);
+            //lv_obj_invalidate(gear_label);
+            lvgl_port_unlock();
+            break;
+            }
 
         break;
     }
@@ -450,7 +460,11 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
                 lv_bar_set_value(rpm_bar, rpm, LV_ANIM_OFF); //turn on if want animation to next value
             } */
             if (rpm_label && lv_obj_is_valid(rpm_label)) {
-                lv_label_set_text_fmt(rpm_label, "%05d", rpm);
+                if (lvgl_port_lock(-1)) {
+                    lv_label_set_text_fmt(rpm_label, "%05d", rpm);
+                    lvgl_port_unlock();
+                    //break;
+                }
             }
 
             // Update shift lights here
@@ -458,7 +472,12 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
 
             // Update throttle bar
             if (throttle_bar && lv_obj_is_valid(throttle_bar)) {
-                lv_bar_set_value(throttle_bar, (int)throttle, LV_ANIM_OFF); //turn on if want animation to next value
+                if (lvgl_port_lock(-1)) {
+                    lv_bar_set_value(throttle_bar, (int)throttle, LV_ANIM_OFF); //turn on if want animation to next value
+                    lv_obj_invalidate(throttle_bar);
+                    lvgl_port_unlock();
+                    //break;
+                    }
             }
 
             // Shift-up logic
@@ -467,13 +486,25 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
                     // Flash gear label red (RPM limiter alert)
                     static bool flash = false;
                     flash = !flash; // toggle each time this is called
-                    lv_obj_set_style_bg_color(gear_label, flash ? lv_color_hex(0xFF0000) : lv_color_hex(0x000000), 0);
+                    if (lvgl_port_lock(-1)) {
+                        lv_obj_set_style_bg_color(gear_label, flash ? lv_color_hex(0xFF0000) : lv_color_hex(0x000000), 0);
+                        lvgl_port_unlock();
+                    //break;
+                    }
                 } else if (rpm >= 9000) {
                     // Shift-up warning (solid red background)
-                    lv_obj_set_style_bg_color(gear_label, lv_color_hex(0x550000), 0);
+                    if (lvgl_port_lock(-1)) {
+                        lv_obj_set_style_bg_color(gear_label, lv_color_hex(0x550000), 0);
+                        lvgl_port_unlock();
+                    //break;
+                    }
                 } else {
                     // Normal background
-                    lv_obj_set_style_bg_color(gear_label, lv_color_hex(0x000000), 0);
+                    if (lvgl_port_lock(-1)) {
+                        lv_obj_set_style_bg_color(gear_label, lv_color_hex(0x000000), 0);
+                    lvgl_port_unlock();
+                    //break;
+                    }
                 }
             }
         }
@@ -505,9 +536,12 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
                 int start = 0;
                 while (start < 4 && buf[start] == '0') start++;
                 if (start == 4) start--;  // Keep at least one digit before decimal
-
-                lv_label_set_text(fuel_pressure_label, &buf[start]);
-                lv_obj_invalidate(fuel_pressure_label);
+                    if (lvgl_port_lock(-1)) {
+                        lv_label_set_text(fuel_pressure_label, &buf[start]);
+                        lv_obj_invalidate(fuel_pressure_label);
+                        lvgl_port_unlock();
+                        //break;
+                        }
             }
 
             if (oil_pressure_label && lv_obj_is_valid(oil_pressure_label)) {
@@ -522,17 +556,13 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
                 int start = 0;
                 while (start < 4 && buf[start] == '0') start++;
                 if (start == 4) start--;
-
-                lv_label_set_text(oil_pressure_label, &buf[start]);
-                lv_obj_invalidate(oil_pressure_label);
-            }
-
-            // Optional: update any progress bars here
-
-        } else {
-            //printf("Invalid payload length for fuel/oil pressure: %d\n", payload_len);
-            break;
-        }
+                    if (lvgl_port_lock(-1)) {
+                        lv_label_set_text(oil_pressure_label, &buf[start]);
+                        lv_obj_invalidate(oil_pressure_label);
+                        lvgl_port_unlock();
+                            //break;
+                        }
+                } 
         break;
     }
 
@@ -546,7 +576,11 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
             if (brake_pressure > 100) brake_pressure = 100;
 
             if (brake_bar && lv_obj_is_valid(brake_bar)) {
-                lv_bar_set_value(brake_bar, (int)brake_pressure, LV_ANIM_OFF); //turn on if want animation to next value
+                if (lvgl_port_lock(-1)) {
+                    lv_bar_set_value(brake_bar, (int)brake_pressure, LV_ANIM_OFF); //turn on if want animation to next value
+                    lvgl_port_unlock();
+                    //break;
+                }
             }
         }
         break;
@@ -569,8 +603,12 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
                 buf[2] = '0' + speed % 10;
                 buf[3] = '\0';
 
-                lv_label_set_text(speed_label, buf);
-                lv_obj_invalidate(speed_label);
+                if (lvgl_port_lock(-1)) {
+                    lv_label_set_text(speed_label, buf);
+                    lv_obj_invalidate(speed_label);
+                    lvgl_port_unlock();
+                    //break;
+                }
             }
         }
         break;
@@ -596,8 +634,12 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
                 buf[4] = '0' + (volts_frac % 10);   // hundredths
                 buf[5] = '\0';
 
-                lv_label_set_text(battery_label, buf);
-                lv_obj_invalidate(battery_label);  // refresh label
+                if (lvgl_port_lock(-1)) {
+                    lv_label_set_text(battery_label, buf);
+                    lv_obj_invalidate(battery_label);  // refresh label
+                    lvgl_port_unlock();
+                    //break;
+                }
             }
         }
         break;
@@ -611,68 +653,68 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
             }
             break;
         }
-        case 1779: { // 0x6F3: Tyre Pressure + DTCs
-            if (payload_len < 8) break; // safety check
+    case 1779: {  // 0x6F3
+        if (payload_len < 8) break;
 
-            // Engine protection severity
-            uint8_t severity = payload[5];
+        uint8_t severity = payload[5];
+        uint16_t raw_dtc = (payload[6] << 8) | payload[7];
 
-            // DTC (Diagnostic Trouble Code)
-            uint16_t raw_dtc = (payload[6] << 8) | payload[7];
+        char dtc_letter;
+        uint8_t prefix = (raw_dtc >> 14) & 0x03;
+        switch (prefix) {
+            case 0: dtc_letter = 'P'; break;
+            case 1: dtc_letter = 'B'; break;
+            case 2: dtc_letter = 'C'; break;
+            case 3: dtc_letter = 'U'; break;
+            default: dtc_letter = '?'; break;
+        }
 
-            char dtc_letter;
-            uint8_t prefix = (raw_dtc >> 14) & 0x03;
-            switch (prefix) {
-                case 0: dtc_letter = 'P'; break;
-                case 1: dtc_letter = 'B'; break;
-                case 2: dtc_letter = 'C'; break;
-                case 3: dtc_letter = 'U'; break;
-                default: dtc_letter = '?'; break;
-            }
+        uint16_t dtc_number = raw_dtc & 0x3FFF;
+        char dtc_str[7];  // 1 + 4 + 1
+        dtc_str[0] = dtc_letter;
 
-            uint16_t dtc_number = raw_dtc & 0x3FFF;
+        for (int i = 0; i < 4; i++) {
+            uint8_t nibble = (dtc_number >> (12 - 4 * i)) & 0xF;
+            dtc_str[i + 1] = (nibble < 10) ? ('0' + nibble) : ('A' + nibble - 10);
+        }
+        dtc_str[5] = '\0';
 
-            // Build dtc_str manually without snprintf, format: [Letter][4 hex digits]
-            char dtc_str[7]; // 1 letter + 4 hex chars + null terminator
-            dtc_str[0] = dtc_letter;
-
-            // Convert dtc_number to uppercase hex chars, 4 digits
-            for (int i = 0; i < 4; i++) {
-                uint8_t nibble = (dtc_number >> (12 - 4*i)) & 0xF;
-                if (nibble < 10) {
-                    dtc_str[i+1] = '0' + nibble;
-                } else {
-                    dtc_str[i+1] = 'A' + (nibble - 10);
-                }
-            }
-            dtc_str[5] = '\0';
-
-            // Output
-            //printf("Engine Protection Severity: %d\n", severity);
-            //printf("Engine DTC: %s\n", dtc_str);
-
-            if (dtc_letter == 'P') {
-                switch (dtc_number) {
-                    case 0x2A00:
-                        printf("Fault: Wideband 1 Sensor Failure\n");
-                        break;
-                    case 0x0101:
-                        printf("Fault: Coolant Temp Sensor\n");
-                        break;
-                    case 0x0307:
-                        printf("Fault: Knock Sensor\n");
-                        break;
-                    default:
-                        printf("Unknown Powertrain DTC\n");
-                }
+        if (dtc_letter == 'P') {
+            switch (dtc_number) {
+                case 0x2A00:
+                    printf("Fault: Wideband 1 Sensor Failure\n");
+                    break;
+                case 0x0101:
+                    printf("Fault: Coolant Temp Sensor\n");
+                    break;
+                case 0x0307:
+                    printf("Fault: Knock Sensor\n");
+                    break;
+                default:
+                    printf("Unknown Powertrain DTC\n");
+                    break;
             }
         }
-        default: {
-            // Unknown ID
-            break;
+
+        if (dtc_code_label && lv_obj_is_valid(dtc_code_label)) {
+            if (lvgl_port_lock(-1)) {
+                lv_label_set_text_fmt(dtc_code_label, "DTC: %s", dtc_str);
+                lvgl_port_unlock();
+            }
+        }
+
+        if (dtc_severity_label && lv_obj_is_valid(dtc_severity_label)) {
+                if (lvgl_port_lock(-1)) {
+                    lv_label_set_text_fmt(dtc_severity_label, "Severity: %u", severity);
+                    lvgl_port_unlock();
+                }
+            }
+            break;  // <--- You NEED this!
+            }  // <--- End of case block
         }
     }
 }
+
 
 
 
@@ -688,21 +730,22 @@ float swap_float_bytes(const uint8_t *data) {
 }
 
 
-void lv_tick_task(void* arg) {
-    lv_tick_inc(1);  // Inform LVGL that 1ms has passed
-}
-
 
 void init_lvgl_tick_timer(void) {
     static const esp_timer_create_args_t lvgl_tick_timer_args = {
-        .callback = &lv_tick_task,
-        .arg = NULL,
-        .name = "lv_tick"
-    };
+    .callback = lv_tick_task,
+    .arg = NULL,
+    .dispatch_method = ESP_TIMER_TASK,
+    .name = "lv_tick"
+};
 
     static esp_timer_handle_t lvgl_tick_timer = NULL;
     ESP_ERROR_CHECK(esp_timer_create(&lvgl_tick_timer_args, &lvgl_tick_timer));
     ESP_ERROR_CHECK(esp_timer_start_periodic(lvgl_tick_timer, 1000)); // 1ms = 1000us
+}
+
+void lv_tick_task(void* arg) {
+    lv_tick_inc(1);  // Inform LVGL that 1ms has passed
 }
 
 void LVGL_Task(void *pvParameters) {
@@ -723,12 +766,10 @@ void Display_Task(void *pvParameters) {
     encoded_message_t msg;
 
     while (1) { 
-        if (xQueueReceive(xECU, &msg, 0) == pdPASS) {
-            if (lvgl_port_lock(-1)) {
-                decode_and_dispatch(&msg);
-                lvgl_port_unlock();
-            }
+        if (xQueueReceive(xECU, &msg, pdMS_TO_TICKS(200)) == pdPASS) {
+            decode_and_dispatch(&msg);  // decode will lock internally per update
+            }else {
+            vTaskDelay(pdMS_TO_TICKS(50));  // Prevent tight loop when no message
         }
-        vTaskDelay(pdMS_TO_TICKS(1));
     }
 }

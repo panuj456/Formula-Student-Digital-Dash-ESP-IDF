@@ -22,7 +22,7 @@ extern void Display_Task(void *pvParameters);
 
 void app_main()
 {
-    xECU = xQueueCreate(5, sizeof(encoded_message_t));
+    xECU = xQueueCreate(40, sizeof(encoded_message_t));
     if (xECU == NULL) {
         ESP_LOGE(TAG_MAIN,"Failed to create ECU queue= %p",xECU); // Failed to create the queue.
     }
@@ -43,15 +43,16 @@ void app_main()
     CAN_INIT();
     init_lvgl_tick_timer();
 
+    /*
+    xTaskCreate(CAN_Task, "Can Task", 8192, NULL, 5, NULL);
+    xTaskCreate(Display_Task, "Dashboard Task", 8192, NULL, 5, NULL);
+    xTaskCreate(LVGL_Task, "LVGL Task", 8192, NULL, 5, NULL);
+    */
+
     
-    //xTaskCreate(CAN_Task, "Can Task", 8192, NULL, 5, NULL);
-    //xTaskCreate(Display_Task, "Dashboard Task", 8192, NULL, 5, NULL);
-    //xTaskCreate(LVGL_Task, "LVGL Task", 8192, NULL, 5, NULL);
-    
-    
-    xTaskCreatePinnedToCore(CAN_Task, "CAN Task", 8192, NULL, 5, NULL, 0);      // Core 0: Real-time CAN
-    xTaskCreatePinnedToCore(Display_Task, "Dashboard Task", 8192, NULL, 4, NULL, 0); // Core 0: CAN Decode/UI prep
-    xTaskCreatePinnedToCore(LVGL_Task, "LVGL Task", 8192, NULL, 3, NULL, 1);        // Core 1: LVGL Handler
+    xTaskCreatePinnedToCore(CAN_Task, "CAN Task", 32768, NULL, 5, NULL, 0);      // Core 0: Real-time CAN
+    xTaskCreatePinnedToCore(Display_Task, "Dashboard Task", 32768, NULL, 4, NULL, 1); // Core 0: CAN Decode/UI prep
+    xTaskCreatePinnedToCore(LVGL_Task, "LVGL Task", 32768, NULL, 3, NULL, 1);        // Core 1: LVGL Handler
     
     
     //vTaskDelay(pdMS_TO_TICKS(1));
