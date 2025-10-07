@@ -63,6 +63,11 @@
 #define EXAMPLE_PIN_NUM_TOUCH_RST       (-1)            // -1 if not used
 #define EXAMPLE_PIN_NUM_TOUCH_INT       (-1)            // -1 if not used
 
+//Additional Configuration Optimisations
+#define EXAMPLE_RGB_BOUNCE_BUFFER_SIZE (10 * EXAMPLE_LCD_H_RES)  // e.g., 10 lines for robustness
+#define EXAMPLE_RGB_BOUNCE_BUFFER_SIZE (3) //Use with SRAM if possible (anti-tearing)
+#define EXAMPLE_LCD_PIXEL_CLOCK_HZ (20000000) // 20MHz example; adjust based on your LCD spec
+
 static const char *TAG = "example";
 
 bool example_lvgl_lock(int timeout_ms);

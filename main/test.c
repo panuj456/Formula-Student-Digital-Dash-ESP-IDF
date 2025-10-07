@@ -355,12 +355,20 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
                     while (start < 3 && buf[start] == '0') start++;
                     if (start == 3) start--;  // Keep at least one digit
 
+                    if (val >= 100) {
+                        // Shift-up warning (solid red background)
+                        if (lvgl_port_lock(-1)) {
+                            lv_obj_set_style_bg_color(coolant_temp_label, lv_color_hex(0x550000), 0);
+                            lvgl_port_unlock();
+                        }
+                    }
+
                     if (lvgl_port_lock(-1)) {
                     lv_label_set_text(coolant_temp_label, &buf[start]);
                     lv_obj_invalidate(coolant_temp_label);
                     lvgl_port_unlock();
                     }
-                    break;
+                    break; //test without break; statements
                 }
 
                 // Update oil temp label
@@ -378,13 +386,21 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
                     int start = 0;
                     while (start < 3 && buf[start] == '0') start++;
                     if (start == 3) start--;
-                    
+
+                    if (val >= 100) {
+                        // Shift-up warning (solid red background)
+                        if (lvgl_port_lock(-1)) {
+                            lv_obj_set_style_bg_color(oil_temp_label, lv_color_hex(0x550000), 0);
+                            lvgl_port_unlock();
+                        }
+                    }
+                                        
                     if (lvgl_port_lock(-1)) {
                         lv_label_set_text(oil_temp_label, &buf[start]);
                         lv_obj_invalidate(oil_temp_label);
                         lvgl_port_unlock();
-                        
-                    }
+                        }
+
                     break;
                 }
             }
@@ -394,10 +410,9 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
 
 
     case 1136: { // 0x470: Gear
-        uint8_t gear = payload[7]; //might comment out
         static uint8_t last_gear = 0xFF;  // impossible initial value
 
-        gear = payload;
+        uint8_t gear = *((uint8_t*)(payload));
 
         /*
         if (gear == 0x00 && last_gear <= 0x02) {
@@ -459,11 +474,16 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
             // Limit RPM to max display value
             if (rpm > 11500) rpm = 11500;
 
-            /*
-            // Update RPM bar and label
-            if (rpm_bar && lv_obj_is_valid(rpm_bar)) {
-                lv_bar_set_value(rpm_bar, rpm, LV_ANIM_OFF); //turn on if want animation to next value
-            } */
+            // Update throttle bar
+            if (throttle_bar && lv_obj_is_valid(throttle_bar)) {
+                if (lvgl_port_lock(-1)) {
+                    lv_bar_set_value(throttle_bar, (int)throttle, LV_ANIM_OFF); //turn on if want animation to next value
+                    lv_obj_invalidate(throttle_bar);
+                    lvgl_port_unlock();
+                    }
+                    break;
+            }
+
             if (rpm_label && lv_obj_is_valid(rpm_label)) {
                 if (lvgl_port_lock(-1)) {
                     lv_label_set_text(rpm_label, rpm);
@@ -494,7 +514,7 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
                 }else if (rpm <= 3000) {
                     // Low rev warning (solid red background)
                     if (lvgl_port_lock(-1)) {
-                        lv_obj_set_style_bg_color(gear_label, lv_color_hex(0x880000), 0);
+                        lv_obj_set_style_bg_color(gear_label, lv_color_hex(0x990000), 0);
                         lvgl_port_unlock();
                     }
                 }  else {
@@ -505,16 +525,6 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
                     }
                     break;
                 }
-
-            // Update throttle bar
-            if (throttle_bar && lv_obj_is_valid(throttle_bar)) {
-                if (lvgl_port_lock(-1)) {
-                    lv_bar_set_value(throttle_bar, (int)throttle, LV_ANIM_OFF); //turn on if want animation to next value
-                    lv_obj_invalidate(throttle_bar);
-                    lvgl_port_unlock();
-                    }
-                    break;
-            }
             }
         }
         break;
@@ -720,8 +730,8 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
                     lvgl_port_unlock();
                 }
             }
-            break;  // <--- You NEED this!
-            }  // <--- End of case block
+            break;  
+            } 
         }
     }
 }
@@ -776,7 +786,8 @@ void Display_Task(void *pvParameters) {
     while (1) { 
         if (xQueueReceive(xECU, &msg, pdMS_TO_TICKS(200)) == pdPASS) {
             decode_and_dispatch(&msg);  // decode will lock internally per update
-            }else {
+            }
+            else {
             vTaskDelay(pdMS_TO_TICKS(50));  // Prevent tight loop when no message
         }
     }

@@ -85,57 +85,63 @@ void receive_can_message() {
                 float oil = ((received_msg.data[6] << 8) | received_msg.data[7]) / 10.0f;
                 coolant = coolant - 273.15f;
                 oil = oil - 273.15f;
-                memcpy(encoded.data + encoded.length, &coolant, sizeof(float));
-                //*(float *)(encoded.data + encoded.length) = coolant;
+                //memcpy(encoded.data + encoded.length, &coolant, sizeof(float));
+                *(float *)(encoded.data + encoded.length) = coolant;
                 encoded.length += sizeof(float);
-                memcpy(encoded.data + encoded.length, &oil, sizeof(float));
-                //*(float *)(encoded.data + encoded.length) = oil;
+                //memcpy(encoded.data + encoded.length, &oil, sizeof(float));
+                *(float *)(encoded.data + encoded.length) = oil;
                 encoded.length += sizeof(float);
                 break;
             }
             case 0x361: {
                 float fuel = ((received_msg.data[0] << 8) | received_msg.data[1]) / 10.0f - 101.3f;
                 float oilp = ((received_msg.data[2] << 8) | received_msg.data[3]) / 10.0f - 101.3f;
-                memcpy(encoded.data + encoded.length, &fuel, sizeof(float));
-                //*(float *)(encoded.data + encoded.length) = fuel;
+                //memcpy(encoded.data + encoded.length, &fuel, sizeof(float));
+                *(float *)(encoded.data + encoded.length) = fuel;
                 encoded.length += sizeof(float);
-                memcpy(encoded.data + encoded.length, &oilp, sizeof(float));
-                //*(float *)(encoded.data + encoded.length) = oilp;
+                //memcpy(encoded.data + encoded.length, &oilp, sizeof(float));
+                *(float *)(encoded.data + encoded.length) = oilp;
                 encoded.length += sizeof(float);
                 break;
             }
             case 0x36B: {
                 float brake = ((received_msg.data[0] << 8) | received_msg.data[1]) / 10.0f - 101.3f;
-                memcpy(encoded.data + encoded.length, &brake, sizeof(float));
-                //*(float *)(encoded.data + encoded.length) = brake;
+                //memcpy(encoded.data + encoded.length, &brake, sizeof(float));
+                *(float *)(encoded.data + encoded.length) = brake;
                 encoded.length += sizeof(float);
                 break;
             }
             case 0x370: {
                 float speed = ((received_msg.data[0] << 8) | received_msg.data[1]) / 10.0f;
-                memcpy(encoded.data + encoded.length, &speed, sizeof(float));
-                //*(float *)(encoded.data + encoded.length) = speed;
+                //memcpy(encoded.data + encoded.length, &speed, sizeof(float));
+                *(float *)(encoded.data + encoded.length) = speed;
                 encoded.length += sizeof(float);
                 break;
             }
             case 0x372: {
                 float voltage = ((received_msg.data[0] << 8) | received_msg.data[1]) / 10.0f;
-                memcpy(encoded.data + encoded.length, &voltage, sizeof(float));
-                //*(float *)(encoded.data + encoded.length) = voltage;
+                //memcpy(encoded.data + encoded.length, &voltage, sizeof(float));
+                *(float *)(encoded.data + encoded.length) = voltage;
                 encoded.length += sizeof(float);
                 break;
             }
             case 0x3E9: {
                 float lambda = ((received_msg.data[4] << 8) | received_msg.data[5]) / 1000.0f;
-                memcpy(encoded.data + encoded.length, &lambda, sizeof(float));
+                //memcpy(encoded.data + encoded.length, &lambda, sizeof(float));
+                *(float *)(encoded.data + encoded.length) = lambda;
                 encoded.length += sizeof(float);
                 break;
+            }
+
+            case 0x36C: {
+                //wheel speed
             }
             /*case 0x3E5: { //ignition switch
                 encoded.data[encoded.length++] = received_msg.data[0];
                 break;
             }*/
            case 0x6F3: {
+            /*
                 // Tyre pressures
                 float front_pressure = ((received_msg.data[0] << 8) | received_msg.data[1]) / 10.0f - 101.3f;
                 float rear_pressure  = ((received_msg.data[2] << 8) | received_msg.data[3]) / 10.0f - 101.3f;
@@ -156,6 +162,7 @@ void receive_can_message() {
                 encoded.data[encoded.length++] = (uint8_t)(fr_leak);
                 encoded.data[encoded.length++] = (uint8_t)(rl_leak);
                 encoded.data[encoded.length++] = (uint8_t)(rr_leak);
+                */
 
                 // Engine protection severity
                 uint8_t severity = received_msg.data[5];
@@ -221,7 +228,7 @@ void CAN_INIT(void) {
     twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT(TX_GPIO_NUM, RX_GPIO_NUM, TWAI_MODE_NORMAL);
     g_config.rx_queue_len = 128;
 
-    twai_timing_config_t t_config = TWAI_TIMING_CONFIG_1MBITS();
+    twai_timing_config_t t_config = TWAI_TIMING_CONFIG_1MBITS(); //reading haltech CAN protocol
     twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
 
     ESP_ERROR_CHECK(twai_driver_install(&g_config, &t_config, &f_config));
