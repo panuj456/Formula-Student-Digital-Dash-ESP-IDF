@@ -368,7 +368,7 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
                     lv_obj_invalidate(coolant_temp_label);
                     lvgl_port_unlock();
                     }
-                    break; //test without break; statements
+                    //test without break; statements
                 }
 
                 // Update oil temp label
@@ -481,7 +481,6 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
                     lv_obj_invalidate(throttle_bar);
                     lvgl_port_unlock();
                     }
-                    break;
             }
 
             if (rpm_label && lv_obj_is_valid(rpm_label)) {
@@ -489,7 +488,6 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
                     lv_label_set_text(rpm_label, rpm);
                     lvgl_port_unlock();
                 }
-                break;
             }
 
             // Update shift lights here
@@ -559,7 +557,6 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
                         lv_obj_invalidate(fuel_pressure_label);
                         lvgl_port_unlock();
                         }
-                    break;
             }
 
             if (oil_pressure_label && lv_obj_is_valid(oil_pressure_label)) {

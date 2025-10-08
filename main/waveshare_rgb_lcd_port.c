@@ -238,32 +238,3 @@ static void add_data(lv_timer_t *timer) // Timer callback to add data to the cha
     lv_obj_t *chart = timer->user_data;                                                                        // Get the chart associated with the timer 
     lv_chart_set_next_value2(chart, lv_chart_get_series_next(chart, NULL), lv_rand(0, 200), lv_rand(0, 1000)); // Add random data to the chart 
 }
-
-// This demo UI is adapted from LVGL official example: https://docs.lvgl.io/master/examples.html#scatter-chart
-void example_lvgl_demo_ui() // LVGL demo UI initialization function 
-{
-    lv_obj_t *scr = lv_scr_act();                                              // Get the current active screen 
-    lv_obj_t *chart = lv_chart_create(scr);                                    // Create a chart object 
-    lv_obj_set_size(chart, 200, 150);                                          // Set chart size 
-    lv_obj_align(chart, LV_ALIGN_CENTER, 0, 0);                                // Center the chart on the screen 
-    lv_obj_add_event_cb(chart, draw_event_cb, LV_EVENT_DRAW_PART_BEGIN, NULL); // Add draw event callback 
-    lv_obj_set_style_line_width(chart, 0, LV_PART_ITEMS);                      /* Remove chart lines  */
-
-    lv_chart_set_type(chart, LV_CHART_TYPE_SCATTER); // Set chart type to scatter 
-
-    lv_chart_set_axis_tick(chart, LV_CHART_AXIS_PRIMARY_X, 5, 5, 5, 1, true, 30);  // Set X-axis ticks 
-    lv_chart_set_axis_tick(chart, LV_CHART_AXIS_PRIMARY_Y, 10, 5, 6, 5, true, 50); // Set Y-axis ticks 
-
-    lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_X, 0, 200);  // Set X-axis range 
-    lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, 0, 1000); // Set Y-axis range 
-
-    lv_chart_set_point_count(chart, 50); // Set the number of points in the chart 
-
-    lv_chart_series_t *ser = lv_chart_add_series(chart, lv_palette_main(LV_PALETTE_RED), LV_CHART_AXIS_PRIMARY_Y); // Add a series to the chart 
-    for (int i = 0; i < 50; i++)
-    {                                                                            // Add random points to the chart 
-        lv_chart_set_next_value2(chart, ser, lv_rand(0, 200), lv_rand(0, 1000)); // Set X and Y values 
-    }
-
-    lv_timer_create(add_data, 100, chart); // Create a timer to add new data every 100ms 
-}

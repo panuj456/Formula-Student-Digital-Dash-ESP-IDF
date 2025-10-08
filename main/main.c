@@ -33,7 +33,7 @@ void app_main()
     //wavesahre_rgb_lcd_bl_on();  //Turn on the screen backlight 
     //wavesahre_rgb_lcd_bl_off(); //Turn off the screen backlight 
     
-    ESP_LOGI(TAG_MAIN, "LVGL display initialisation");
+    ESP_LOGI(TAG_MAIN, "LVGL display initialisation - vPinned");
     // Lock the mutex due to the LVGL APIs are not thread-safe
     if (lvgl_port_lock(-1)) {
         dash_create2();
@@ -44,15 +44,15 @@ void app_main()
     init_lvgl_tick_timer();
 
     /*
-    xTaskCreate(CAN_Task, "Can Task", 8192, NULL, 5, NULL);
-    xTaskCreate(Display_Task, "Dashboard Task", 8192, NULL, 5, NULL);
-    xTaskCreate(LVGL_Task, "LVGL Task", 8192, NULL, 5, NULL);
+    xTaskCreate(CAN_Task, "Can Task", 16384, NULL, 5, NULL);
+    xTaskCreate(Display_Task, "Dashboard Task", 16384, NULL, 5, NULL);
+    xTaskCreate(LVGL_Task, "LVGL Task", 16384, NULL, 5, NULL);
     */
 
     
-    xTaskCreatePinnedToCore(CAN_Task, "CAN Task", 32768, NULL, 5, NULL, 0);      // Core 0: Real-time CAN
-    xTaskCreatePinnedToCore(Display_Task, "Dashboard Task", 32768, NULL, 4, NULL, 1); // Core 0: CAN Decode/UI prep
-    xTaskCreatePinnedToCore(LVGL_Task, "LVGL Task", 32768, NULL, 3, NULL, 1);        // Core 1: LVGL Handler
+    xTaskCreatePinnedToCore(CAN_Task, "CAN Task", 16384, NULL, 5, NULL, 0);      // Core 0: Real-time CAN
+    xTaskCreatePinnedToCore(Display_Task, "Dashboard Task", 16384, NULL, 4, NULL, 1); // Core 0: CAN Decode/UI prep
+    xTaskCreatePinnedToCore(LVGL_Task, "LVGL Task", 16384, NULL, 3, NULL, 1);        // Core 1: LVGL Handler
     
     
     //vTaskDelay(pdMS_TO_TICKS(1));

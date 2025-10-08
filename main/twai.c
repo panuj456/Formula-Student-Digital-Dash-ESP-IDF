@@ -133,8 +133,36 @@ void receive_can_message() {
                 break;
             }
 
+            case 0x363: {
+                //wheel slip/diff
+                float wheelSlip = ((received_msg.data[0] << 8) | received_msg.data[1]) / 10.0f;
+                float wheelDiff = ((received_msg.data[2] << 8) | received_msg.data[3]) / 10.0f;
+                //memcpy(encoded.data + encoded.length, &speed, sizeof(float));
+                *(float *)(encoded.data + encoded.length) = wheelSlip;
+                encoded.length += sizeof(float);
+                
+                //memcpy(encoded.data + encoded.length, &speed, sizeof(float));
+                *(float *)(encoded.data + encoded.length) = wheelDiff;
+                encoded.length += sizeof(float);
+                break;
+            }
+
             case 0x36C: {
                 //wheel speed
+                float wheelSpeedFL = ((received_msg.data[0] << 8) | received_msg.data[1]) / 10.0f;
+                float wheelSpeedFR = ((received_msg.data[2] << 8) | received_msg.data[3]) / 10.0f;
+                float wheelSpeedRL = ((received_msg.data[4] << 8) | received_msg.data[5]) / 10.0f;
+                float wheelSpeedRR = ((received_msg.data[6] << 8) | received_msg.data[7]) / 10.0f;
+                //memcpy(encoded.data + encoded.length, &speed, sizeof(float));
+                *(float *)(encoded.data + encoded.length) = wheelSpeedFL;
+                encoded.length += sizeof(float);
+                *(float *)(encoded.data + encoded.length) = wheelSpeedFR;
+                encoded.length += sizeof(float);
+                *(float *)(encoded.data + encoded.length) = wheelSpeedRL;
+                encoded.length += sizeof(float);
+                *(float *)(encoded.data + encoded.length) = wheelSpeedRR;
+                encoded.length += sizeof(float);
+                break;
             }
             /*case 0x3E5: { //ignition switch
                 encoded.data[encoded.length++] = received_msg.data[0];
