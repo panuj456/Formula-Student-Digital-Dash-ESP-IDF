@@ -72,11 +72,11 @@ void receive_can_message() {
             case 0x360: {
                 uint16_t rpm = (received_msg.data[0] << 8) | received_msg.data[1];
                 float throttle = ((received_msg.data[4] << 8) | received_msg.data[5]) / 10.0f;
-                memcpy(encoded.data + encoded.length, &rpm, sizeof(uint16_t));
-                //*(uint16_t *)(encoded.data + encoded.length) = rpm;
+                //memcpy(encoded.data + encoded.length, &rpm, sizeof(uint16_t));
+                *(uint16_t *)(encoded.data + encoded.length) = rpm;
                 encoded.length += sizeof(uint16_t);
-                memcpy(encoded.data + encoded.length, &throttle, sizeof(float));
-                //*(float *)(encoded.data + encoded.length) = throttle;
+                //memcpy(encoded.data + encoded.length, &throttle, sizeof(float));
+                *(float *)(encoded.data + encoded.length) = throttle;
                 encoded.length += sizeof(float);
                 break;
             }

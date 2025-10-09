@@ -32,6 +32,11 @@ static lv_color_t led_colors[NUM_SHIFT_LEDS];  // Current color state
 static uint16_t dtc_code = 0;
 static lv_obj_t *dtc_severity_label = NULL;
 static uint8_t severity = 0;
+int oil_val = 0;
+int coolant_val = 0;
+int fuel_val = 0;
+
+
 
 static lv_obj_t *rpm_bar;
 static lv_obj_t *rpm_label;
@@ -333,79 +338,71 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
 
     switch (id) {
 
-        case 992: { // 0x3E0: Coolant & Oil Temp
-            if (payload_len >= 2 * sizeof(float)) {
-                //float coolant_temp, oil_temp;
-                float coolant_temp = *((float *)(payload));
-                float oil_temp = *((float *)(payload + sizeof(float)));
+    case 992: { // 0x3E0: Coolant & Oil Temp
+        if (payload_len >= 2 * sizeof(float)) {
 
-                // Update coolant temp label
-                if (coolant_temp_label && lv_obj_is_valid(coolant_temp_label)) {
-                    int val = (int)(coolant_temp * 10);  // One decimal place
-                    char buf[8];
+            float coolant_temp = *((float *)(payload));
+            float oil_temp     = *((float *)(payload + sizeof(float)));
 
-                    buf[0] = '0' + (val / 1000) % 10;  // Hundreds
-                    buf[1] = '0' + (val / 100) % 10;   // Tens
-                    buf[2] = '0' + (val / 10) % 10;    // Ones
-                    buf[3] = '.';
-                    buf[4] = '0' + (val % 10);         // Tenths
-                    buf[5] = '\0';                     // Null-terminate
+            int coolant_val = (int)(coolant_temp * 10);
+            int oil_val     = (int)(oil_temp * 10);
 
-                    int start = 0;
-                    while (start < 3 && buf[start] == '0') start++;
-                    if (start == 3) start--;  // Keep at least one digit
+            char buf_coolant[8];
+            char buf_oil[8];
+            int start_coolant = 0, start_oil = 0;
 
-                    if (val >= 100) {
-                        // Shift-up warning (solid red background)
-                        if (lvgl_port_lock(-1)) {
-                            lv_obj_set_style_bg_color(coolant_temp_label, lv_color_hex(0x550000), 0);
-                            lvgl_port_unlock();
-                        }
-                    }
+            // --- Format coolant ---
+            buf_coolant[0] = '0' + (coolant_val / 1000) % 10;
+            buf_coolant[1] = '0' + (coolant_val / 100) % 10;
+            buf_coolant[2] = '0' + (coolant_val / 10) % 10;
+            buf_coolant[3] = '.';
+            buf_coolant[4] = '0' + (coolant_val % 10);
+            buf_coolant[5] = '\0';
 
-                    if (lvgl_port_lock(-1)) {
-                    lv_label_set_text(coolant_temp_label, &buf[start]);
-                    lv_obj_invalidate(coolant_temp_label);
-                    lvgl_port_unlock();
-                    }
-                    //test without break; statements
+            while (start_coolant < 3 && buf_coolant[start_coolant] == '0') start_coolant++;
+            if (start_coolant == 3) start_coolant--;
+
+            // --- Format oil ---
+            buf_oil[0] = '0' + (oil_val / 1000) % 10;
+            buf_oil[1] = '0' + (oil_val / 100) % 10;
+            buf_oil[2] = '0' + (oil_val / 10) % 10;
+            buf_oil[3] = '.';
+            buf_oil[4] = '0' + (oil_val % 10);
+            buf_oil[5] = '\0';
+
+            while (start_oil < 3 && buf_oil[start_oil] == '0') start_oil++;
+            if (start_oil == 3) start_oil--;
+
+            // --- LVGL update (one lock) ---
+            if (lvgl_port_lock(-1)) {
+
+                // Color warnings
+                if (oil_val >= 1000) {
+                    lv_obj_set_style_bg_color(oil_temp_label, lv_color_hex(0x550000), 0);
+                } else {
+                    lv_obj_set_style_bg_color(oil_temp_label, lv_color_hex(0x000000), 0);
                 }
 
-                // Update oil temp label
+                if (coolant_val >= 1000) {
+                    lv_obj_set_style_bg_color(coolant_temp_label, lv_color_hex(0x550000), 0);
+                } else {
+                    lv_obj_set_style_bg_color(coolant_temp_label, lv_color_hex(0x000000), 0);
+                }
+
+                // Text updates
+                if (coolant_temp_label && lv_obj_is_valid(coolant_temp_label)) { //validate inside lock as state may change if checked before/after locking
+                    lv_label_set_text(coolant_temp_label, &buf_coolant[start_coolant]);
+                }
+
                 if (oil_temp_label && lv_obj_is_valid(oil_temp_label)) {
-                    int val = (int)(oil_temp * 10);
-                    char buf[8];
-
-                    buf[0] = '0' + (val / 1000) % 10;
-                    buf[1] = '0' + (val / 100) % 10;
-                    buf[2] = '0' + (val / 10) % 10;
-                    buf[3] = '.';
-                    buf[4] = '0' + (val % 10);
-                    buf[5] = '\0';
-
-                    int start = 0;
-                    while (start < 3 && buf[start] == '0') start++;
-                    if (start == 3) start--;
-
-                    if (val >= 100) {
-                        // Shift-up warning (solid red background)
-                        if (lvgl_port_lock(-1)) {
-                            lv_obj_set_style_bg_color(oil_temp_label, lv_color_hex(0x550000), 0);
-                            lvgl_port_unlock();
-                        }
-                    }
-                                        
-                    if (lvgl_port_lock(-1)) {
-                        lv_label_set_text(oil_temp_label, &buf[start]);
-                        lv_obj_invalidate(oil_temp_label);
-                        lvgl_port_unlock();
-                        }
-
-                    break;
+                    lv_label_set_text(oil_temp_label, &buf_oil[start_oil]);
                 }
+
+                lvgl_port_unlock();
             }
-            break;
         }
+        break;
+    }
 
 
 
@@ -453,131 +450,112 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
         }
         if (lvgl_port_lock(-1)) {
             lv_label_set_text(gear_label, gear_str);
-            //lv_obj_invalidate(gear_label);
             lvgl_port_unlock();
             }
 
         break;
     }
-
-    case 864: { // 0x360: RPM & Throttle //else if (last_gear >= 1 && last_gear <= 6) {
+    
+    case 864: { // 0x360: RPM & Throttle
         if (payload_len >= sizeof(uint16_t) + sizeof(float)) {
 
             uint16_t rpm = *((uint16_t *)(payload));
             float throttle = *((float *)(payload + sizeof(float)));
 
-        static uint32_t last_throttlerpm_time = 0;
-        uint32_t now = xTaskGetTickCount();
-        if ((now - last_throttlerpm_time) < pdMS_TO_TICKS(10)) break;
-        last_throttlerpm_time = now;
+            static uint32_t last_throttlerpm_time = 0;
+            uint32_t now = xTaskGetTickCount();
+            if ((now - last_throttlerpm_time) < pdMS_TO_TICKS(10)) break;
+            last_throttlerpm_time = now;
 
-            // Limit RPM to max display value
             if (rpm > 11500) rpm = 11500;
 
-            // Update throttle bar
-            if (throttle_bar && lv_obj_is_valid(throttle_bar)) {
-                if (lvgl_port_lock(-1)) {
-                    lv_bar_set_value(throttle_bar, (int)throttle, LV_ANIM_OFF); //turn on if want animation to next value
-                    lv_obj_invalidate(throttle_bar);
-                    lvgl_port_unlock();
-                    }
-            }
+            // Lock once for all LVGL updates in this frame to reduce CPU usage and mutex load
+            if (lvgl_port_lock(-1)) {
 
-            if (rpm_label && lv_obj_is_valid(rpm_label)) {
-                if (lvgl_port_lock(-1)) {
-                    lv_label_set_text(rpm_label, rpm);
-                    lvgl_port_unlock();
+                // --- Throttle bar ---
+                if (throttle_bar && lv_obj_is_valid(throttle_bar)) {
+                    lv_bar_set_value(throttle_bar, (int)throttle, LV_ANIM_OFF);
                 }
-            }
 
-            // Update shift lights here
-            shift_light_update(rpm);
+                // --- Shift lights ---
+                shift_light_update(rpm); // safe to call here if it uses the same lock or doesn't touch LVGL
 
-            // Shift-up logic
-            if (gear_label && lv_obj_is_valid(gear_label)) {
-                if (rpm >= 10800) { //to 11000
-                    // Flash gear label red (RPM limiter alert)
-                    static bool flash = false;
-                    flash = !flash; // toggle each time this is called
-                    if (lvgl_port_lock(-1)) {
-                        lv_obj_set_style_bg_color(gear_label, flash ? lv_color_hex(0xFF0000) : lv_color_hex(0x000000), 0);
-                        lvgl_port_unlock();
+                // --- Gear label background color ---
+                if (gear_label && lv_obj_is_valid(gear_label)) {
+
+                    lv_color_t color = lv_color_hex(0x000000); // default
+
+                    if (rpm >= 10800) { // flash limiter red
+                        static bool flash = false;
+                        flash = !flash;
+                        color = flash ? lv_color_hex(0xFF0000) : lv_color_hex(0x000000);
+
+                    } else if (rpm >= 9000) {
+                        color = lv_color_hex(0x550000); // shift-up warning
+
+                    } else if (rpm <= 3000) {
+                        color = lv_color_hex(0x990000); // low rev warning
                     }
-                } else if (rpm >= 9000) {
-                    // Shift-up warning (solid red background)
-                    if (lvgl_port_lock(-1)) {
-                        lv_obj_set_style_bg_color(gear_label, lv_color_hex(0x550000), 0);
-                        lvgl_port_unlock();
-                    }
-                }else if (rpm <= 3000) {
-                    // Low rev warning (solid red background)
-                    if (lvgl_port_lock(-1)) {
-                        lv_obj_set_style_bg_color(gear_label, lv_color_hex(0x990000), 0);
-                        lvgl_port_unlock();
-                    }
-                }  else {
-                    // Normal background
-                    if (lvgl_port_lock(-1)) {
-                        lv_obj_set_style_bg_color(gear_label, lv_color_hex(0x000000), 0);
-                    lvgl_port_unlock();
-                    }
-                    break;
+
+                    lv_obj_set_style_bg_color(gear_label, color, 0);
                 }
+
+                lvgl_port_unlock();
             }
         }
         break;
     }
 
+
     case 865: { // 0x361: Fuel & Oil Pressure
         if (payload_len >= 2 * sizeof(float)) {
             float fuel_pressure = *((float *)(payload));
-            float oil_pressure = *((float *)(payload + sizeof(float)));
+            float oil_pressure  = *((float *)(payload + sizeof(float)));
 
-            // Convert to integer * 10 for 1 decimal place, e.g. 12.3 -> 123
             int fuel_val = (int)(fuel_pressure * 10);
-            int oil_val = (int)(oil_pressure * 10);
+            int oil_val  = (int)(oil_pressure * 10);
 
-            if (fuel_pressure_label && lv_obj_is_valid(fuel_pressure_label)) {
-                char buf[8]; // Enough for "xxx.x\0"
-                // Format as xxx.x manually
-                buf[0] = '0' + (fuel_val / 1000) % 10;  // Hundreds
-                buf[1] = '0' + (fuel_val / 100) % 10;   // Tens
-                buf[2] = '0' + (fuel_val / 10) % 10;    // Ones
-                buf[3] = '.';                           // Decimal point
-                buf[4] = '0' + (fuel_val % 10);        // Tenths
-                buf[5] = '\0';
+            char buf_fuel[8];
+            char buf_oil[8];
+            int start_fuel = 0, start_oil = 0;
 
-                // Handle leading zeros (remove if you want)
-                // Or just shift to start at first non-zero digit
-                int start = 0;
-                while (start < 4 && buf[start] == '0') start++;
-                if (start == 4) start--;  // Keep at least one digit before decimal
-                    if (lvgl_port_lock(-1)) {
-                        lv_label_set_text(fuel_pressure_label, &buf[start]);
-                        lv_obj_invalidate(fuel_pressure_label);
-                        lvgl_port_unlock();
-                        }
+            // --- Format Fuel Pressure ---
+            buf_fuel[0] = '0' + (fuel_val / 1000) % 10;
+            buf_fuel[1] = '0' + (fuel_val / 100) % 10;
+            buf_fuel[2] = '0' + (fuel_val / 10) % 10;
+            buf_fuel[3] = '.';
+            buf_fuel[4] = '0' + (fuel_val % 10);
+            buf_fuel[5] = '\0';
+
+            while (start_fuel < 4 && buf_fuel[start_fuel] == '0') start_fuel++;
+            if (start_fuel == 4) start_fuel--;
+
+            // --- Format Oil Pressure ---
+            buf_oil[0] = '0' + (oil_val / 1000) % 10;
+            buf_oil[1] = '0' + (oil_val / 100) % 10;
+            buf_oil[2] = '0' + (oil_val / 10) % 10;
+            buf_oil[3] = '.';
+            buf_oil[4] = '0' + (oil_val % 10);
+            buf_oil[5] = '\0';
+
+            while (start_oil < 4 && buf_oil[start_oil] == '0') start_oil++;
+            if (start_oil == 4) start_oil--;
+
+            // --- LVGL update (one lock for both) ---
+            if (lvgl_port_lock(-1)) {
+
+                // Update labels if they exist and are valid
+                if (fuel_pressure_label && lv_obj_is_valid(fuel_pressure_label)) {
+                    lv_label_set_text(fuel_pressure_label, &buf_fuel[start_fuel]);
+                }
+
+                if (oil_pressure_label && lv_obj_is_valid(oil_pressure_label)) {
+                    lv_label_set_text(oil_pressure_label, &buf_oil[start_oil]);
+                }
+
+                lvgl_port_unlock();
             }
-
-            if (oil_pressure_label && lv_obj_is_valid(oil_pressure_label)) {
-                char buf[8];
-                buf[0] = '0' + (oil_val / 1000) % 10;
-                buf[1] = '0' + (oil_val / 100) % 10;
-                buf[2] = '0' + (oil_val / 10) % 10;
-                buf[3] = '.';
-                buf[4] = '0' + (oil_val % 10);
-                buf[5] = '\0';
-
-                int start = 0;
-                while (start < 4 && buf[start] == '0') start++;
-                if (start == 4) start--;
-                    if (lvgl_port_lock(-1)) {
-                        lv_label_set_text(oil_pressure_label, &buf[start]);
-                        lv_obj_invalidate(oil_pressure_label);
-                        lvgl_port_unlock();
-                        }
-                    break;
-                } 
+        }
         break;
     }
 
@@ -622,8 +600,7 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
                 buf[3] = '\0';
 
                 if (lvgl_port_lock(-1)) {
-                    lv_label_set_text(speed_label, buf);
-                    lv_obj_invalidate(speed_label);
+                    lv_label_set_text(speed_label, buf); //check when wheel speed sensors attached
                     lvgl_port_unlock();
                 }
                 break;
@@ -653,7 +630,7 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
 
                 if (lvgl_port_lock(-1)) {
                     lv_label_set_text(battery_label, buf);
-                    lv_obj_invalidate(battery_label);  // refresh label
+                    //lv_obj_invalidate(battery_label);  // refresh label
                     lvgl_port_unlock();
                 }
                 break;
@@ -713,25 +690,19 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
             }
         }
         */
-
+        if (lvgl_port_lock(-1)) {
         if (dtc_code_label && lv_obj_is_valid(dtc_code_label)) {
-            if (lvgl_port_lock(-1)) {
                 lv_label_set_text(dtc_code_label, dtc_str);
-                lvgl_port_unlock();
-            }
-        }
-
-        if (dtc_severity_label && lv_obj_is_valid(dtc_severity_label)) {
-                if (lvgl_port_lock(-1)) {
-                    lv_label_set_text(dtc_severity_label, severity);
-                    lvgl_port_unlock();
                 }
+        if (dtc_severity_label && lv_obj_is_valid(dtc_severity_label)) {
+                    lv_label_set_text(dtc_severity_label, severity);
+                }
+                lvgl_port_unlock();
             }
             break;  
             } 
         }
     }
-}
 
 
 
