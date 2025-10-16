@@ -1,3 +1,6 @@
+/**
+ * @file test.h
+*/
 #ifndef LVGL_DEMO_H
 #define LVGL_DEMO_H
 
@@ -40,7 +43,15 @@ static lv_obj_t * obj;
 
 
 void dash_create2(void);
+/**
+ * Initialises Dash visual graphs and labels
+ * @note    Enables updating of each label
+*/
 void Display_Task(void *pvParameters);
+/**
+*@param pvParameters
+*@note From wavesahre lcd
+*/
 float swap_float_bytes(const uint8_t *data);
 void shift_light_update(uint16_t rpm);
 lv_obj_t* shift_light_create(lv_obj_t *parent);

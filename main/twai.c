@@ -66,16 +66,14 @@ void receive_can_message() {
             case 0x470: {
                 uint8_t gear = received_msg.data[7];
                 encoded.data[encoded.length++] = gear;
-                //printf("gear value at twai.c: %d\n", gear);
                 break;
             }
             case 0x360: {
                 uint16_t rpm = (received_msg.data[0] << 8) | received_msg.data[1];
                 float throttle = ((received_msg.data[4] << 8) | received_msg.data[5]) / 10.0f;
-                //memcpy(encoded.data + encoded.length, &rpm, sizeof(uint16_t));
                 *(uint16_t *)(encoded.data + encoded.length) = rpm;
                 encoded.length += sizeof(uint16_t);
-                //memcpy(encoded.data + encoded.length, &throttle, sizeof(float));
+                
                 *(float *)(encoded.data + encoded.length) = throttle;
                 encoded.length += sizeof(float);
                 break;
@@ -85,10 +83,9 @@ void receive_can_message() {
                 float oil = ((received_msg.data[6] << 8) | received_msg.data[7]) / 10.0f;
                 coolant = coolant - 273.15f;
                 oil = oil - 273.15f;
-                //memcpy(encoded.data + encoded.length, &coolant, sizeof(float));
                 *(float *)(encoded.data + encoded.length) = coolant;
                 encoded.length += sizeof(float);
-                //memcpy(encoded.data + encoded.length, &oil, sizeof(float));
+
                 *(float *)(encoded.data + encoded.length) = oil;
                 encoded.length += sizeof(float);
                 break;
@@ -96,38 +93,33 @@ void receive_can_message() {
             case 0x361: {
                 float fuel = ((received_msg.data[0] << 8) | received_msg.data[1]) / 10.0f - 101.3f;
                 float oilp = ((received_msg.data[2] << 8) | received_msg.data[3]) / 10.0f - 101.3f;
-                //memcpy(encoded.data + encoded.length, &fuel, sizeof(float));
                 *(float *)(encoded.data + encoded.length) = fuel;
                 encoded.length += sizeof(float);
-                //memcpy(encoded.data + encoded.length, &oilp, sizeof(float));
+
                 *(float *)(encoded.data + encoded.length) = oilp;
                 encoded.length += sizeof(float);
                 break;
             }
             case 0x36B: {
                 float brake = ((received_msg.data[0] << 8) | received_msg.data[1]) / 10.0f - 101.3f;
-                //memcpy(encoded.data + encoded.length, &brake, sizeof(float));
                 *(float *)(encoded.data + encoded.length) = brake;
                 encoded.length += sizeof(float);
                 break;
             }
             case 0x370: {
                 float speed = ((received_msg.data[0] << 8) | received_msg.data[1]) / 10.0f;
-                //memcpy(encoded.data + encoded.length, &speed, sizeof(float));
                 *(float *)(encoded.data + encoded.length) = speed;
                 encoded.length += sizeof(float);
                 break;
             }
             case 0x372: {
                 float voltage = ((received_msg.data[0] << 8) | received_msg.data[1]) / 10.0f;
-                //memcpy(encoded.data + encoded.length, &voltage, sizeof(float));
                 *(float *)(encoded.data + encoded.length) = voltage;
                 encoded.length += sizeof(float);
                 break;
             }
             case 0x3E9: {
                 float lambda = ((received_msg.data[4] << 8) | received_msg.data[5]) / 1000.0f;
-                //memcpy(encoded.data + encoded.length, &lambda, sizeof(float));
                 *(float *)(encoded.data + encoded.length) = lambda;
                 encoded.length += sizeof(float);
                 break;
@@ -137,11 +129,9 @@ void receive_can_message() {
                 //wheel slip/diff
                 float wheelSlip = ((received_msg.data[0] << 8) | received_msg.data[1]) / 10.0f;
                 float wheelDiff = ((received_msg.data[2] << 8) | received_msg.data[3]) / 10.0f;
-                //memcpy(encoded.data + encoded.length, &speed, sizeof(float));
-                *(float *)(encoded.data + encoded.length) = wheelSlip;
+                *(float *)(encoded.data + encoded.length) = wheelSlip; //wheel spin
                 encoded.length += sizeof(float);
                 
-                //memcpy(encoded.data + encoded.length, &speed, sizeof(float));
                 *(float *)(encoded.data + encoded.length) = wheelDiff;
                 encoded.length += sizeof(float);
                 break;
@@ -153,7 +143,7 @@ void receive_can_message() {
                 float wheelSpeedFR = ((received_msg.data[2] << 8) | received_msg.data[3]) / 10.0f;
                 float wheelSpeedRL = ((received_msg.data[4] << 8) | received_msg.data[5]) / 10.0f;
                 float wheelSpeedRR = ((received_msg.data[6] << 8) | received_msg.data[7]) / 10.0f;
-                //memcpy(encoded.data + encoded.length, &speed, sizeof(float));
+
                 *(float *)(encoded.data + encoded.length) = wheelSpeedFL;
                 encoded.length += sizeof(float);
                 *(float *)(encoded.data + encoded.length) = wheelSpeedFR;
@@ -211,20 +201,10 @@ void receive_can_message() {
 
                 uint16_t dtc_number = raw_dtc & 0x3FFF;
 
-                // Optional: Store as ASCII for debugging/serial/log
-                //char dtc_code[6];
-                //snprintf(dtc_code, sizeof(dtc_code), "%c%04X", dtc_letter, dtc_number);
-
                 // Pack DTC number (raw) as 2 bytes
                 encoded.data[encoded.length++] = (raw_dtc >> 8) & 0xFF;
                 encoded.data[encoded.length++] = raw_dtc & 0xFF;
 
-                // Optionally, if you want the full ASCII version (P2A00 etc.):
-                // memcpy(encoded.data + encoded.length, dtc_code, 5);
-                // encoded.length += 5;
-
-                //printf("Parsed DTC: %s, Severity: %u, Tyre FL: %d, FR: %d, RL: %d, RR: %d\n",
-                //    dtc_code, severity, fl_leak, fr_leak, rl_leak, rr_leak);
                 break;
             }
             default:

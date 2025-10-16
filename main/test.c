@@ -530,7 +530,7 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
             while (start_fuel < 4 && buf_fuel[start_fuel] == '0') start_fuel++;
             if (start_fuel == 4) start_fuel--;
 
-            // --- Format Oil Pressure ---
+            // --- Format Oil Pressure --- (Haltech Normalisations)
             buf_oil[0] = '0' + (oil_val / 1000) % 10;
             buf_oil[1] = '0' + (oil_val / 100) % 10;
             buf_oil[2] = '0' + (oil_val / 10) % 10;
@@ -569,7 +569,7 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
         if (payload_len >= sizeof(float)) {
             float brake_pressure = *((float *)(payload));
 
-            // Clamp to valid bar range (0–100) to prevent UI issues
+            // Clamp to valid bar range (0–100)
             if (brake_pressure < 0) brake_pressure = 0;
             if (brake_pressure > 100) brake_pressure = 100;
 
@@ -613,7 +613,6 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
         //printf("Voltage payload bytes: %02X %02X %02X %02X\n", payload[0], payload[1], payload[2], payload[3]);
         if (payload_len >= sizeof(float)) {
             float voltage = *((float *)(payload));
-            //printf("Voltage: %.2f\n", voltage);
 
             if (battery_label && lv_obj_is_valid(battery_label)) {
                 // Manually build string for voltage without using sprintf
@@ -630,7 +629,6 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
 
                 if (lvgl_port_lock(-1)) {
                     lv_label_set_text(battery_label, buf);
-                    //lv_obj_invalidate(battery_label);  // refresh label
                     lvgl_port_unlock();
                 }
                 break;
@@ -743,9 +741,6 @@ void LVGL_Task(void *pvParameters) {
         vTaskDelay(pdMS_TO_TICKS(30)); // 200hz 16ms for 60FPS, 30ms for ~33FPS
     }
 }
-
-
-//revert back
 
 void Display_Task(void *pvParameters) {
 
