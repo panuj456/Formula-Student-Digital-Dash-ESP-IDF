@@ -15,6 +15,7 @@ extern void CAN_INIT();
 extern void init_lvgl_tick_timer();
 extern void LVGL_Task(void *pvParameters);
 extern void Display_Task(void *pvParameters);
+extern void Decode_Task(void *pvParameters);
 
 
 #define CAN_MSG_SIZE (sizeof(encoded_message_t))
@@ -50,8 +51,9 @@ void app_main()
     */
 
     
-    xTaskCreatePinnedToCore(CAN_Task, "CAN Task", 16384, NULL, 5, NULL, 0);      // Core 0: Real-time CAN
-    xTaskCreatePinnedToCore(Display_Task, "Dashboard Task", 16384, NULL, 4, NULL, 1); // Core 0: CAN Decode/UI prep
+    xTaskCreatePinnedToCore(CAN_Task, "CAN Task", 8192, NULL, 5, NULL, 0);      // Core 0: Real-time CAN
+    xTaskCreatePinnedToCore(Decode_Task, "Decode Task", 8192, NULL, 4, NULL, 0);        // Core 1: Decode Handler
+    xTaskCreatePinnedToCore(Display_Task, "Display Task", 8192, NULL, 3, NULL, 1); // Core 0: CAN Decode/UI prep
     xTaskCreatePinnedToCore(LVGL_Task, "LVGL Task", 16384, NULL, 3, NULL, 1);        // Core 1: LVGL Handler
     
     

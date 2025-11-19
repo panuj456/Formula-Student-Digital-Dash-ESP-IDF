@@ -4,6 +4,8 @@
 #include "freertos/FreeRTOS.h"       // For vTaskDelay and pdMS_TO_TICKS
 #include "freertos/task.h"
 #include "twai.h"
+#include "dash_state.h"
+
 
 extern QueueHandle_t xECU;
 void decode_and_dispatch(const encoded_message_t *encoded_msg);
@@ -505,6 +507,7 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
         }
         break;
     }
+    
 
 
     case 865: { // 0x361: Fuel & Oil Pressure
@@ -700,23 +703,157 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg) {
             break;  
             } 
         }
-    }
-
-
-
-
-float swap_float_bytes(const uint8_t *data) {
-    uint8_t temp[4];
-    temp[0] = data[3];
-    temp[1] = data[2];
-    temp[2] = data[1];
-    temp[3] = data[0];
-    float val;
-    memcpy(&val, temp, sizeof(float));
-    return val;
 }
 
+void decode_and_dispatch(const encoded_message_t *encoded_msg)
+{
+    uint16_t id = encoded_msg->id;
+    const uint8_t *payload = encoded_msg->data;
+    uint8_t dlc = encoded_msg->dlc;
 
+    // update timestamp in ms
+    uint32_t now_ms = (uint32_t)(esp_timer_get_time() / 1000ULL);
+
+    switch (id) {
+        case 1136: {
+            if (dlc >= 8) {
+                g_dash_back.gear = payload[7];
+                g_dash_back.last_update_ms = now_ms;
+                g_dash_back.dirty = true;
+            }
+            break;
+        }
+
+        case 864: { // 0x360: RPM & Throttle
+            if (dlc >= 6) {
+                uint16_t rpm_raw = (payload[0] << 8) | payload[1];
+                uint16_t throttle_raw = (payload[4] << 8) | payload[5];
+
+                // store raw in back buffer
+                g_dash_back.rpm = rpm_raw;
+                g_dash_back.throttle = throttle_raw / 10.0f;
+                g_dash_back.last_update_ms = now_ms;
+                g_dash_back.dirty = true;
+            }
+            break;
+        }
+        case 992: { // Coolant & Oil Temp
+            uint16_t raw_coolant = (received_msg.data[0] << 8) | received_msg.data[1];
+            uint16_t raw_oil     = (received_msg.data[6] << 8) | received_msg.data[7];
+
+            // Haltech normalisation: Kelvin -> Celsius
+            g_dash_back.coolant_temp = (raw_coolant / 10.0f) - 273.15f;
+            g_dash_back.oil_temp     = (raw_oil     / 10.0f) - 273.15f;
+
+            g_dash_back.last_update_ms = esp_timer_get_time() / 1000;
+            g_dash_back.dirty = true;
+            break;
+            }
+        case 865: {
+            uint16_t raw_fuel  = (received_msg.data[0] << 8) | received_msg.data[1];
+            uint16_t raw_oilp  = (received_msg.data[2] << 8) | received_msg.data[3];
+
+            // Haltech normalisation: kPa minus atmospheric offset
+            g_dash_back.fuel_pressure = (raw_fuel / 10.0f) - 101.3f;
+            g_dash_back.oil_pressure  = (raw_oilp / 10.0f) - 101.3f;
+
+            g_dash_back.last_update_ms = now_ms;
+            g_dash_back.dirty = true;
+            break;
+        }
+        case 0x36B: {
+            if (dlc >= 2) {
+                uint16_t brake_raw = (payload[0] << 8) | payload[1];
+                g_dash_back.brake_pressure = (brake_raw / 10.0f) - 101.3f;
+                g_dash_back.last_update_ms = now_ms;
+                g_dash_back.dirty = true;
+            }
+            break;
+        }
+        case 0x370: {
+            if (dlc >= 2) {
+                uint16_t speed_raw = (payload[0] << 8) | payload[1];
+                g_dash_back.speed = speed_raw / 10.0f;
+                g_dash_back.last_update_ms = now_ms;
+                g_dash_back.dirty = true;
+            }
+            break;
+        }
+        case 0x372: {
+            if (dlc >= 2) {
+                uint16_t raw_voltage = (payload[0] << 8) | payload[1];
+                g_dash_back.voltage = raw_voltage / 10.0f;
+
+                g_dash_back.last_update_ms = now_ms;
+                g_dash_back.dirty = true;
+            }
+            break;
+        }
+        case 0x3E9: {
+            if (dlc >= 6) {
+                uint16_t raw_lambda = (payload[4] << 8) | payload[5];
+
+                // Haltech normalisation: lambda = raw / 1000
+                g_dash_back.lambda = raw_lambda / 1000.0f;
+
+                g_dash_back.last_update_ms = now_ms;
+                g_dash_back.dirty = true;
+            }
+            break;
+        }
+
+        case 0x363: {
+            //wheel slip/diff
+            if (dlc >= 4) {
+                uint16_t raw_slip = (payload[0] << 8) | payload[1];
+                uint16_t raw_diff = (payload[2] << 8) | payload[3];
+
+                g_dash_back.wheel_slip = raw_slip / 10.0f;
+                g_dash_back.wheel_diff = raw_diff / 10.0f;
+
+                g_dash_back.last_update_ms = now_ms;
+                g_dash_back.dirty = true;
+            }
+            break;
+        }
+
+        case 0x36C: {
+            //wheel speed
+            if (dlc >= 8) {
+                g_dash_back.wheel_speed_fl = ((payload[0] << 8) | payload[1]) / 10.0f;
+                g_dash_back.wheel_speed_fr = ((payload[2] << 8) | payload[3]) / 10.0f;
+                g_dash_back.wheel_speed_rl = ((payload[4] << 8) | payload[5]) / 10.0f;
+                g_dash_back.wheel_speed_rr = ((payload[6] << 8) | payload[7]) / 10.0f;
+
+                g_dash_back.last_update_ms = now_ms;
+                g_dash_back.dirty = true;
+            }
+            break;
+        }
+        case 0x6F3: {
+
+            // Engine protection severity
+            if (dlc >= 8) {
+
+                uint8_t leaking_flags = payload[4];
+                uint8_t severity = payload[5];
+                uint16_t dtc = (payload[6] << 8) | payload[7];
+
+                g_dash_back.leak_flags   = leaking_flags;
+                g_dash_back.severity     = severity;
+                g_dash_back.dtc_code     = dtc;
+
+                g_dash_back.last_update_ms = now_ms;
+                g_dash_back.dirty          = true;
+            }
+            break;
+        }
+
+        default:
+            // ignore
+            break;
+    }
+}
 
 void init_lvgl_tick_timer(void) {
     static const esp_timer_create_args_t lvgl_tick_timer_args = {
@@ -742,7 +879,7 @@ void LVGL_Task(void *pvParameters) {
     }
 }
 
-void Display_Task(void *pvParameters) {
+void Decode_Task(void *pvParameters) {
 
     encoded_message_t msg;
 
@@ -753,5 +890,44 @@ void Display_Task(void *pvParameters) {
             else {
             vTaskDelay(pdMS_TO_TICKS(50));  // Prevent tight loop when no message
         }
+    }
+}
+
+void Display_Task(void *pvParameters) {
+    static uint32_t last_ui_update = 0;
+
+    while (1) {
+
+        // Update UI at ~50Hz
+        uint32_t now = esp_timer_get_time() / 1000;
+        if (now - last_ui_update >= 20) {      
+            last_ui_update = now;
+
+            // Check if new values arrived
+            if (g_dash_back.dirty) {
+
+                // swap buffers
+                taskENTER_CRITICAL();
+                g_dash_front = g_dash_back;
+                g_dash_back.dirty = false;
+                taskEXIT_CRITICAL();
+
+                // --- LVGL UI UPDATE ---
+                lv_label_set_text_fmt(label_rpm, "%u", g_dash_front.rpm);
+                lv_label_set_text_fmt(label_throttle, "%.1f", g_dash_front.throttle);
+                lv_label_set_text_fmt(label_lambda, "%.3f", g_dash_front.lambda);
+                lv_label_set_text_fmt(label_speed, "%.1f", g_dash_front.speed);
+                lv_label_set_text_fmt(label_brake, "%.1f", g_dash_front.brake);
+                lv_label_set_text_fmt(label_voltage, "%.1f", g_dash_front.voltage);
+                lv_label_set_text_fmt(label_gear, "%u", g_dash_front.gear);
+                lv_label_set_text_fmt(label_fuelp, "%.1f", g_dash_front.fuel_pressure);
+                lv_label_set_text_fmt(label_oilp, "%.1f", g_dash_front.oil_pressure);
+                lv_label_set_text_fmt(label_coolant, "%.1f", g_dash_front.coolant_temp);
+                lv_label_set_text_fmt(label_oiltemp, "%.1f", g_dash_front.oil_temp);
+                // etc…
+            }
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(5));   // light sleep
     }
 }

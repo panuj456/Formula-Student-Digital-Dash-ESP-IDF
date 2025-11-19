@@ -59,99 +59,70 @@ void receive_can_message() {
 
         encoded_message_t encoded = { .length = 0 };
 
-        encoded.data[encoded.length++] = (id >> 8) & 0xFF;
-        encoded.data[encoded.length++] = id & 0xFF;
+        //encoded_message_t encoded;
+        encoded.id = id;
+        encoded.dlc = received_msg.data_length_code;
+        // copy only the bytes reported by DLC
+        if (encoded.dlc > 8) encoded.dlc = 8;
+        memcpy(encoded.data, received_msg.data, encoded.dlc);
+
 
         switch (id) {
             case 0x470: {
-                uint8_t gear = received_msg.data[7];
-                encoded.data[encoded.length++] = gear;
+                encoded.data[encoded.length++] = received_msg.data[7];
                 break;
             }
             case 0x360: {
-                uint16_t rpm = (received_msg.data[0] << 8) | received_msg.data[1];
-                float throttle = ((received_msg.data[4] << 8) | received_msg.data[5]) / 10.0f;
-                *(uint16_t *)(encoded.data + encoded.length) = rpm;
-                encoded.length += sizeof(uint16_t);
-                
-                *(float *)(encoded.data + encoded.length) = throttle;
-                encoded.length += sizeof(float);
+                // Just copy the raw CAN payload (6 bytes)
+                memcpy(encoded.data + encoded.length, received_msg.data, 6);
+                encoded.length += 6;
                 break;
             }
-            case 0x3E0: { // Coolant & Oil Temp
-                float coolant = ((received_msg.data[0] << 8) | received_msg.data[1]) / 10.0f;
-                float oil = ((received_msg.data[6] << 8) | received_msg.data[7]) / 10.0f;
-                coolant = coolant - 273.15f;
-                oil = oil - 273.15f;
-                *(float *)(encoded.data + encoded.length) = coolant;
-                encoded.length += sizeof(float);
-
-                *(float *)(encoded.data + encoded.length) = oil;
-                encoded.length += sizeof(float);
+            case 0x3E0: {
+                memcpy(encoded.data + encoded.length, received_msg.data, 8);
+                encoded.length += 8;
                 break;
             }
             case 0x361: {
-                float fuel = ((received_msg.data[0] << 8) | received_msg.data[1]) / 10.0f - 101.3f;
-                float oilp = ((received_msg.data[2] << 8) | received_msg.data[3]) / 10.0f - 101.3f;
-                *(float *)(encoded.data + encoded.length) = fuel;
-                encoded.length += sizeof(float);
-
-                *(float *)(encoded.data + encoded.length) = oilp;
-                encoded.length += sizeof(float);
+                memcpy(encoded.data + encoded.length, received_msg.data, 8);
+                encoded.length += 8;
                 break;
             }
+
             case 0x36B: {
-                float brake = ((received_msg.data[0] << 8) | received_msg.data[1]) / 10.0f - 101.3f;
-                *(float *)(encoded.data + encoded.length) = brake;
-                encoded.length += sizeof(float);
+                // Copy raw 2 bytes (brake sensor)
+                memcpy(encoded.data + encoded.length, received_msg.data, 2);
+                encoded.length += 2;
                 break;
             }
             case 0x370: {
-                float speed = ((received_msg.data[0] << 8) | received_msg.data[1]) / 10.0f;
-                *(float *)(encoded.data + encoded.length) = speed;
-                encoded.length += sizeof(float);
+                // Copy raw 2 bytes
+                memcpy(encoded.data + encoded.length, received_msg.data, 2);
+                encoded.length += 2;
                 break;
             }
+
             case 0x372: {
-                float voltage = ((received_msg.data[0] << 8) | received_msg.data[1]) / 10.0f;
-                *(float *)(encoded.data + encoded.length) = voltage;
-                encoded.length += sizeof(float);
+                memcpy(encoded.data + encoded.length, received_msg.data, 2);
+                encoded.length += 2;
                 break;
             }
             case 0x3E9: {
-                float lambda = ((received_msg.data[4] << 8) | received_msg.data[5]) / 1000.0f;
-                *(float *)(encoded.data + encoded.length) = lambda;
-                encoded.length += sizeof(float);
+                encoded.data[encoded.length++] = received_msg.data[4];
+                encoded.data[encoded.length++] = received_msg.data[5];
                 break;
             }
 
             case 0x363: {
-                //wheel slip/diff
-                float wheelSlip = ((received_msg.data[0] << 8) | received_msg.data[1]) / 10.0f;
-                float wheelDiff = ((received_msg.data[2] << 8) | received_msg.data[3]) / 10.0f;
-                *(float *)(encoded.data + encoded.length) = wheelSlip; //wheel spin
-                encoded.length += sizeof(float);
-                
-                *(float *)(encoded.data + encoded.length) = wheelDiff;
-                encoded.length += sizeof(float);
+                // 4 bytes: slip_H, slip_L, diff_H, diff_L
+                memcpy(encoded.data + encoded.length, received_msg.data, 4);
+                encoded.length += 4;
                 break;
             }
 
             case 0x36C: {
-                //wheel speed
-                float wheelSpeedFL = ((received_msg.data[0] << 8) | received_msg.data[1]) / 10.0f;
-                float wheelSpeedFR = ((received_msg.data[2] << 8) | received_msg.data[3]) / 10.0f;
-                float wheelSpeedRL = ((received_msg.data[4] << 8) | received_msg.data[5]) / 10.0f;
-                float wheelSpeedRR = ((received_msg.data[6] << 8) | received_msg.data[7]) / 10.0f;
-
-                *(float *)(encoded.data + encoded.length) = wheelSpeedFL;
-                encoded.length += sizeof(float);
-                *(float *)(encoded.data + encoded.length) = wheelSpeedFR;
-                encoded.length += sizeof(float);
-                *(float *)(encoded.data + encoded.length) = wheelSpeedRL;
-                encoded.length += sizeof(float);
-                *(float *)(encoded.data + encoded.length) = wheelSpeedRR;
-                encoded.length += sizeof(float);
+                memcpy(encoded.data + encoded.length, received_msg.data, 8);
+                encoded.length += 8;
                 break;
             }
             /*case 0x3E5: { //ignition switch
@@ -159,51 +130,12 @@ void receive_can_message() {
                 break;
             }*/
            case 0x6F3: {
-            /*
-                // Tyre pressures
-                float front_pressure = ((received_msg.data[0] << 8) | received_msg.data[1]) / 10.0f - 101.3f;
-                float rear_pressure  = ((received_msg.data[2] << 8) | received_msg.data[3]) / 10.0f - 101.3f;
-                
-                memcpy(encoded.data + encoded.length, &front_pressure, sizeof(float));
-                encoded.length += sizeof(float);
-                memcpy(encoded.data + encoded.length, &rear_pressure, sizeof(float));
-                encoded.length += sizeof(float);
+                // Severity – 1 byte at payload index 5
+                encoded.data[encoded.length++] = received_msg.data[5];
 
-                // Tyre leak booleans packed in byte 4
-                uint8_t leak_flags = received_msg.data[4];
-                bool rr_leak = (leak_flags >> 3) & 0x01;
-                bool rl_leak = (leak_flags >> 2) & 0x01;
-                bool fr_leak = (leak_flags >> 1) & 0x01;
-                bool fl_leak = (leak_flags >> 0) & 0x01;
-
-                encoded.data[encoded.length++] = (uint8_t)(fl_leak);
-                encoded.data[encoded.length++] = (uint8_t)(fr_leak);
-                encoded.data[encoded.length++] = (uint8_t)(rl_leak);
-                encoded.data[encoded.length++] = (uint8_t)(rr_leak);
-                */
-
-                // Engine protection severity
-                uint8_t severity = received_msg.data[5];
-                encoded.data[encoded.length++] = severity;
-
-                // Decode Engine Protection DTC (OBD-style)
-                uint16_t raw_dtc = (received_msg.data[6] << 8) | received_msg.data[7];
-                char dtc_letter;
-                uint8_t prefix = (raw_dtc >> 14) & 0x03;
-
-                switch (prefix) {
-                    case 0: dtc_letter = 'P'; break;
-                    case 1: dtc_letter = 'B'; break;
-                    case 2: dtc_letter = 'C'; break;
-                    case 3: dtc_letter = 'U'; break;
-                    default: dtc_letter = '?'; break;
-                }
-
-                uint16_t dtc_number = raw_dtc & 0x3FFF;
-
-                // Pack DTC number (raw) as 2 bytes
-                encoded.data[encoded.length++] = (raw_dtc >> 8) & 0xFF;
-                encoded.data[encoded.length++] = raw_dtc & 0xFF;
+                // Raw DTC – 2 bytes at payload indices [6:7]
+                encoded.data[encoded.length++] = received_msg.data[6];
+                encoded.data[encoded.length++] = received_msg.data[7];
 
                 break;
             }
@@ -212,23 +144,15 @@ void receive_can_message() {
                 return;
         }
     BaseType_t status;
-
+    // Prioritise critical messages (gear, rpm/throttle, brake)
     if (id == 0x470 || id == 0x360 || id == 0x36B) {
-        //status = xQueueSendToFront(xECU, &encoded, portMAX_DELAY);
-        status = xQueueSendToFront(xECU, &encoded, 0);
+        status = xQueueSendToFront(xECU, &encoded, 0); // non-blocking
     } else {
-        //status = xQueueSend(xECU, &encoded, portMAX_DELAY);
         status = xQueueSend(xECU, &encoded, 0);
     }
 
     if (status != pdPASS) {
-        ESP_LOGE(TWAI_TAG, "Failed to send message to xECU queue");
-    }
-    } else if (ret == ESP_ERR_TIMEOUT) {
-        ESP_LOGW(TWAI_TAG, "CAN Receive Timeout");
-        
-    } else {
-        ESP_LOGE(TWAI_TAG, "CAN Receive Failed: %s", esp_err_to_name(ret));
+        // queue full, consider incrementing a counter for diagnostics; avoid heavy logging
     }
 }
 

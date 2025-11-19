@@ -32,54 +32,12 @@
 #define FIELD_UINT16  3
 #define FIELD_FLOAT   4
 
-typedef struct {
-    uint16_t id;
-    uint8_t data[8];  // raw CAN frame data
-    uint8_t length;   // data length
-} can_message_t;
-
 // Encoded application message for queue transport
 typedef struct {
-    uint8_t data[32];  // buffer size for encoded messages
-    size_t length;
+    uint16_t id;      // CAN ID
+    uint8_t  dlc;     // actual number of bytes received (0..8)
+    uint8_t  data[8]; // raw CAN payload (no decoding!)
 } encoded_message_t;
-
-// Define the message definition struct
-typedef struct {
-    uint16_t message_id;
-    size_t field_count;
-    uint8_t fields[MAX_FIELDS];  // array of field types
-} message_def_t;
-
-// Message definitions array
-static const message_def_t message_defs[] = {
-    { 0x3E0, 2, { FIELD_FLOAT, FIELD_FLOAT } },        // Coolant Temp, Oil Temp
-    { 0x470, 1, { FIELD_UINT8, FIELD_NONE } },         // Gear Position
-    { 0x360, 2, { FIELD_UINT16, FIELD_UINT8 } },       // RPM, Throttle Position
-    { 0x361, 2, { FIELD_FLOAT, FIELD_FLOAT } },        // Fuel Pressure, Oil Pressure
-    { 0x370, 1, { FIELD_FLOAT, FIELD_NONE } },         // Vehicle Speed
-    { 0x372, 1, { FIELD_FLOAT, FIELD_NONE } },         // Battery Voltage
-    { 0x3E9, 1, { FIELD_FLOAT, FIELD_NONE } },         // Lambda
-    { 0x36B, 1, { FIELD_FLOAT, FIELD_NONE } },         // Brake Pressure Sensor
-    { 0x3E5, 1, { FIELD_UINT8, FIELD_NONE } }          // Ignition Switch State
-};
-
-static const size_t message_defs_count = sizeof(message_defs) / sizeof(message_defs[0]);
-
-// Dashboard stats struct
-typedef struct {
-    float Coolant_Temp;
-    float Oil_Temp;
-    uint8_t Gear_Position;
-    uint16_t RPM;
-    float Throttle_Position;
-    float Fuel_Pressure;
-    float Oil_Pressure;
-    float Vehicle_Speed;
-    float Battery_Voltage;
-    float Lambda;
-    float Brake_Pressure_Sensor;
-} stats_t;
 
 // Function prototypes
 void CAN_Task(void *pvParameters);
