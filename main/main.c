@@ -53,7 +53,7 @@ void app_main()
     
     xTaskCreatePinnedToCore(CAN_Task, "CAN Task", 8192, NULL, 5, NULL, 0);      // Core 0: Real-time CAN
     xTaskCreatePinnedToCore(Decode_Task, "Decode Task", 8192, NULL, 4, NULL, 0);        // Core 1: Decode Handler
-    xTaskCreatePinnedToCore(Display_Task, "Display Task", 8192, NULL, 3, NULL, 1); // Core 0: CAN Decode/UI prep
+    xTaskCreatePinnedToCore(Display_Task, "Display Task", 8192, NULL, 4, NULL, 1); // Core 0: CAN Decode/UI prep
     xTaskCreatePinnedToCore(LVGL_Task, "LVGL Task", 16384, NULL, 3, NULL, 1);        // Core 1: LVGL Handler
     
     

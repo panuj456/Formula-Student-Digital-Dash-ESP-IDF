@@ -58,6 +58,8 @@ lv_obj_t* shift_light_create(lv_obj_t *parent);
 void LVGL_Task(void *pvParameters);
 void lv_tick_task(void* arg);
 void init_lvgl_tick_timer(void);
+void Decode_Task(void *pvParameters);
+static lv_color_t compute_gear_bg_color(uint16_t rpm);
 
 //size_t decode_message(const uint8_t *buffer, void *fields_out[]);
 

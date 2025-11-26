@@ -312,414 +312,58 @@ void shift_light_update(uint16_t rpm) {
             // Color based on how far you are in the LED range
             if (i < NUM_SHIFT_LEDS * 0.4) {
                 // First 60%: green
-                lv_obj_set_style_bg_color(shift_leds[i], lv_color_hex(0x00FF00), 0);
+                shift_leds[i], lv_color_hex(0x00FF00);
             } else if (i < NUM_SHIFT_LEDS * 0.75) {
                 // Next ~25%: yellow
-                lv_obj_set_style_bg_color(shift_leds[i], lv_color_hex(0xFFFF00), 0);
+                shift_leds[i], lv_color_hex(0xFFFF00);
             } else if (i < NUM_SHIFT_LEDS * 0.9) {
                 // Next ~10%: red
-                lv_obj_set_style_bg_color(shift_leds[i], lv_color_hex(0xFF0000), 0);
+                shift_leds[i], lv_color_hex(0xFF0000);
             } else {
                 // Final ~5%: purple
-                lv_obj_set_style_bg_color(shift_leds[i], lv_color_hex(0x800080), 0);  // Purple
+                shift_leds[i], lv_color_hex(0x800080);  // Purple
             }
         } else {
             // Dim/off
-            lv_obj_set_style_bg_color(shift_leds[i], lv_color_hex(0x222222), 0);
+            shift_leds[i], lv_color_hex(0x222222);
         }
     }
 }
 
-
-void decode_and_dispatch(const encoded_message_t *encoded_msg) {
-    if (encoded_msg->length < 2) return;  // must have at least 2 bytes for ID
-
-    uint16_t id = (encoded_msg->data[0] << 8) | encoded_msg->data[1];
-    const uint8_t *payload = encoded_msg->data + 2;
-    size_t payload_len = encoded_msg->length - 2;
-
-    switch (id) {
-
-    case 992: { // 0x3E0: Coolant & Oil Temp
-        if (payload_len >= 2 * sizeof(float)) {
-
-            float coolant_temp = *((float *)(payload));
-            float oil_temp     = *((float *)(payload + sizeof(float)));
-
-            int coolant_val = (int)(coolant_temp * 10);
-            int oil_val     = (int)(oil_temp * 10);
-
-            char buf_coolant[8];
-            char buf_oil[8];
-            int start_coolant = 0, start_oil = 0;
-
-            // --- Format coolant ---
-            buf_coolant[0] = '0' + (coolant_val / 1000) % 10;
-            buf_coolant[1] = '0' + (coolant_val / 100) % 10;
-            buf_coolant[2] = '0' + (coolant_val / 10) % 10;
-            buf_coolant[3] = '.';
-            buf_coolant[4] = '0' + (coolant_val % 10);
-            buf_coolant[5] = '\0';
-
-            while (start_coolant < 3 && buf_coolant[start_coolant] == '0') start_coolant++;
-            if (start_coolant == 3) start_coolant--;
-
-            // --- Format oil ---
-            buf_oil[0] = '0' + (oil_val / 1000) % 10;
-            buf_oil[1] = '0' + (oil_val / 100) % 10;
-            buf_oil[2] = '0' + (oil_val / 10) % 10;
-            buf_oil[3] = '.';
-            buf_oil[4] = '0' + (oil_val % 10);
-            buf_oil[5] = '\0';
-
-            while (start_oil < 3 && buf_oil[start_oil] == '0') start_oil++;
-            if (start_oil == 3) start_oil--;
-
-            // --- LVGL update (one lock) ---
-            if (lvgl_port_lock(-1)) {
-
-                // Color warnings
-                if (oil_val >= 1000) {
-                    lv_obj_set_style_bg_color(oil_temp_label, lv_color_hex(0x550000), 0);
-                } else {
-                    lv_obj_set_style_bg_color(oil_temp_label, lv_color_hex(0x000000), 0);
-                }
-
-                if (coolant_val >= 1000) {
-                    lv_obj_set_style_bg_color(coolant_temp_label, lv_color_hex(0x550000), 0);
-                } else {
-                    lv_obj_set_style_bg_color(coolant_temp_label, lv_color_hex(0x000000), 0);
-                }
-
-                // Text updates
-                if (coolant_temp_label && lv_obj_is_valid(coolant_temp_label)) { //validate inside lock as state may change if checked before/after locking
-                    lv_label_set_text(coolant_temp_label, &buf_coolant[start_coolant]);
-                }
-
-                if (oil_temp_label && lv_obj_is_valid(oil_temp_label)) {
-                    lv_label_set_text(oil_temp_label, &buf_oil[start_oil]);
-                }
-
-                lvgl_port_unlock();
-            }
-        }
-        break;
-    }
-
-
-
-    case 1136: { // 0x470: Gear
-        static uint8_t last_gear = 0xFF;  // impossible initial value
-
-        uint8_t gear = *((uint8_t*)(payload));
-
-        /*
-        if (gear == 0x00 && last_gear <= 0x02) {
-            return;
-        }
-            */
-
-        if (gear == last_gear) {
-            break;
-        }
-        else{
-        last_gear = gear;}
-
-        static char gear_str[3];  // Enough for "NN" + null terminator
-
-        switch (last_gear) {
-            case 0x00:
-                gear_str[0] = 'N';
-                gear_str[1] = '\0';
-                break;
-            case 0x0E:
-                gear_str[0] = 'R';
-                gear_str[1] = '\0';
-                break;
-            case 0x0F:
-                gear_str[0] = 'P';
-                gear_str[1] = '\0';
-                break;
-            default:
-                if (last_gear > 0 && last_gear < 0x0E) {
-                    gear_str[0] = '0' + last_gear;
-                    gear_str[1] = '\0';
-                } else {
-                    gear_str[0] = '-';
-                    gear_str[1] = '\0';
-                }
-                break;
-        }
-        if (lvgl_port_lock(-1)) {
-            lv_label_set_text(gear_label, gear_str);
-            lvgl_port_unlock();
-            }
-
-        break;
-    }
-    
-    case 864: { // 0x360: RPM & Throttle
-        if (payload_len >= sizeof(uint16_t) + sizeof(float)) {
-
-            uint16_t rpm = *((uint16_t *)(payload));
-            float throttle = *((float *)(payload + sizeof(float)));
-
-            static uint32_t last_throttlerpm_time = 0;
-            uint32_t now = xTaskGetTickCount();
-            if ((now - last_throttlerpm_time) < pdMS_TO_TICKS(10)) break;
-            last_throttlerpm_time = now;
-
-            if (rpm > 11500) rpm = 11500;
-
-            // Lock once for all LVGL updates in this frame to reduce CPU usage and mutex load
-            if (lvgl_port_lock(-1)) {
-
-                // --- Throttle bar ---
-                if (throttle_bar && lv_obj_is_valid(throttle_bar)) {
-                    lv_bar_set_value(throttle_bar, (int)throttle, LV_ANIM_OFF);
-                }
-
-                // --- Shift lights ---
-                shift_light_update(rpm); // safe to call here if it uses the same lock or doesn't touch LVGL
-
-                // --- Gear label background color ---
-                if (gear_label && lv_obj_is_valid(gear_label)) {
-
-                    lv_color_t color = lv_color_hex(0x000000); // default
-
-                    if (rpm >= 10800) { // flash limiter red
-                        static bool flash = false;
-                        flash = !flash;
-                        color = flash ? lv_color_hex(0xFF0000) : lv_color_hex(0x000000);
-
-                    } else if (rpm >= 9000) {
-                        color = lv_color_hex(0x550000); // shift-up warning
-
-                    } else if (rpm <= 3000) {
-                        color = lv_color_hex(0x990000); // low rev warning
-                    }
-
-                    lv_obj_set_style_bg_color(gear_label, color, 0);
-                }
-
-                lvgl_port_unlock();
-            }
-        }
-        break;
-    }
-    
-
-
-    case 865: { // 0x361: Fuel & Oil Pressure
-        if (payload_len >= 2 * sizeof(float)) {
-            float fuel_pressure = *((float *)(payload));
-            float oil_pressure  = *((float *)(payload + sizeof(float)));
-
-            int fuel_val = (int)(fuel_pressure * 10);
-            int oil_val  = (int)(oil_pressure * 10);
-
-            char buf_fuel[8];
-            char buf_oil[8];
-            int start_fuel = 0, start_oil = 0;
-
-            // --- Format Fuel Pressure ---
-            buf_fuel[0] = '0' + (fuel_val / 1000) % 10;
-            buf_fuel[1] = '0' + (fuel_val / 100) % 10;
-            buf_fuel[2] = '0' + (fuel_val / 10) % 10;
-            buf_fuel[3] = '.';
-            buf_fuel[4] = '0' + (fuel_val % 10);
-            buf_fuel[5] = '\0';
-
-            while (start_fuel < 4 && buf_fuel[start_fuel] == '0') start_fuel++;
-            if (start_fuel == 4) start_fuel--;
-
-            // --- Format Oil Pressure --- (Haltech Normalisations)
-            buf_oil[0] = '0' + (oil_val / 1000) % 10;
-            buf_oil[1] = '0' + (oil_val / 100) % 10;
-            buf_oil[2] = '0' + (oil_val / 10) % 10;
-            buf_oil[3] = '.';
-            buf_oil[4] = '0' + (oil_val % 10);
-            buf_oil[5] = '\0';
-
-            while (start_oil < 4 && buf_oil[start_oil] == '0') start_oil++;
-            if (start_oil == 4) start_oil--;
-
-            // --- LVGL update (one lock for both) ---
-            if (lvgl_port_lock(-1)) {
-
-                // Update labels if they exist and are valid
-                if (fuel_pressure_label && lv_obj_is_valid(fuel_pressure_label)) {
-                    lv_label_set_text(fuel_pressure_label, &buf_fuel[start_fuel]);
-                }
-
-                if (oil_pressure_label && lv_obj_is_valid(oil_pressure_label)) {
-                    lv_label_set_text(oil_pressure_label, &buf_oil[start_oil]);
-                }
-
-                lvgl_port_unlock();
-            }
-        }
-        break;
-    }
-
-    case 875: { // 0x36B: Brake Pressure
-
-        static uint32_t last_brake_time = 0;
-        uint32_t now = xTaskGetTickCount();
-        if ((now - last_brake_time) < pdMS_TO_TICKS(10)) break;
-
-        last_brake_time = now;
-        if (payload_len >= sizeof(float)) {
-            float brake_pressure = *((float *)(payload));
-
-            // Clamp to valid bar range (0–100)
-            if (brake_pressure < 0) brake_pressure = 0;
-            if (brake_pressure > 100) brake_pressure = 100;
-
-            if (brake_bar && lv_obj_is_valid(brake_bar)) {
-                if (lvgl_port_lock(-1)) {
-                    lv_bar_set_value(brake_bar, (int)brake_pressure, LV_ANIM_OFF); //turn on if want animation to next value
-                    lvgl_port_unlock();
-                }
-                break;
-            }
-        }
-        break;
-    }
-
-    case 880: { // 0x370: Vehicle Speed
-        //printf("Speed payload bytes: %02X %02X %02X %02X\n", payload[0], payload[1], payload[2], payload[3]);
-        if (payload_len >= sizeof(float)) {
-            float speed_float = *((float *)(payload));
-            int speed = (int)speed_float;
-
-
-            if (speed_label && lv_obj_is_valid(speed_label)) {
-                // Build a 3-digit zero-padded string manually (e.g., "005", "120")
-                char buf[4];
-                buf[0] = '0' + (speed / 100) % 10;
-                buf[1] = '0' + (speed / 10) % 10;
-                buf[2] = '0' + speed % 10;
-                buf[3] = '\0';
-
-                if (lvgl_port_lock(-1)) {
-                    lv_label_set_text(speed_label, buf); //check when wheel speed sensors attached
-                    lvgl_port_unlock();
-                }
-                break;
-            }
-        }
-        break;
-    }
-
-    case 882: { // Battery voltage
-        //printf("Voltage payload bytes: %02X %02X %02X %02X\n", payload[0], payload[1], payload[2], payload[3]);
-        if (payload_len >= sizeof(float)) {
-            float voltage = *((float *)(payload));
-
-            if (battery_label && lv_obj_is_valid(battery_label)) {
-                // Manually build string for voltage without using sprintf
-                int volts_int = (int)voltage;
-                int volts_frac = (int)((voltage - volts_int) * 100);
-
-                char buf[16];
-                buf[0] = '0' + (volts_int / 10);    // tens digit
-                buf[1] = '0' + (volts_int % 10);    // ones digit
-                buf[2] = '.';
-                buf[3] = '0' + (volts_frac / 10);   // tenths
-                buf[4] = '0' + (volts_frac % 10);   // hundredths
-                buf[5] = '\0';
-
-                if (lvgl_port_lock(-1)) {
-                    lv_label_set_text(battery_label, buf);
-                    lvgl_port_unlock();
-                }
-                break;
-            }
-        }
-        break;
-    }
-
-    case 1001: { // 0x3E9: Lambda
-            if (payload_len >= sizeof(float)) {
-                float lambda = *((float *)(payload));
-                // Optional: update lambda display
-            }
-            break;
-        }
-    case 1779: {  // 0x6F3
-        if (payload_len < 8) break;
-
-        uint8_t severity = payload[5];
-        uint16_t raw_dtc = (payload[6] << 8) | payload[7];
-
-        char dtc_letter;
-        uint8_t prefix = (raw_dtc >> 14) & 0x03;
-        switch (prefix) {
-            case 0: dtc_letter = 'P'; break;
-            case 1: dtc_letter = 'B'; break;
-            case 2: dtc_letter = 'C'; break;
-            case 3: dtc_letter = 'U'; break;
-            default: dtc_letter = '?'; break;
-        }
-
-        uint16_t dtc_number = raw_dtc & 0x3FFF;
-        char dtc_str[7];  // 1 + 4 + 1
-        dtc_str[0] = dtc_letter;
-
-        for (int i = 0; i < 4; i++) {
-            uint8_t nibble = (dtc_number >> (12 - 4 * i)) & 0xF;
-            dtc_str[i + 1] = (nibble < 10) ? ('0' + nibble) : ('A' + nibble - 10);
-        }
-        dtc_str[5] = '\0';
-
-        /*
-        if (dtc_letter == 'P') {
-            switch (dtc_number) {
-                case 0x2A00:
-                    //printf("Fault: Wideband 1 Sensor Failure\n");
-                    break;
-                case 0x0101:
-                    //printf("Fault: Coolant Temp Sensor\n");
-                    break;
-                case 0x0307:
-                    //printf("Fault: Knock Sensor\n");
-                    break;
-                default:
-                    //printf("Unknown Powertrain DTC\n");
-                    break;
-            }
-        }
-        */
-        if (lvgl_port_lock(-1)) {
-        if (dtc_code_label && lv_obj_is_valid(dtc_code_label)) {
-                lv_label_set_text(dtc_code_label, dtc_str);
-                }
-        if (dtc_severity_label && lv_obj_is_valid(dtc_severity_label)) {
-                    lv_label_set_text(dtc_severity_label, severity);
-                }
-                lvgl_port_unlock();
-            }
-            break;  
-            } 
-        }
+static lv_color_t compute_gear_bg_color(uint16_t rpm)
+{
+    if (rpm >= 10800) return lv_color_hex(0xFF0000);     // limiter flash (caller can toggle flash bit)
+    if (rpm >= 9000)  return lv_color_hex(0x550000);     // shift-up alarm
+    if (rpm <= 3000)  return lv_color_hex(0x990000);     // low rev
+    return lv_color_hex(0x000000);                       // normal
 }
 
 void decode_and_dispatch(const encoded_message_t *encoded_msg)
 {
-    uint16_t id = encoded_msg->id;
-    const uint8_t *payload = encoded_msg->data;
-    uint8_t dlc = encoded_msg->dlc;
+    for (;;) {
+        if (xQueueReceive(xECU, &msg, rx_timeout) != pdPASS) {
+            // nothing received; loop (optionally sleep a short time)
+            taskYIELD();
+            continue;
+        }
 
-    // update timestamp in ms
+    // parse encoded message: first two bytes = ID, remainder payload
+    if (msg.length < 2) continue;
+    uint16_t id = ((uint16_t)msg.data[0] << 8) | msg.data[1];
+    const uint8_t *payload = &msg.data[2];
+    size_t dlc = msg.length - 2;
     uint32_t now_ms = (uint32_t)(esp_timer_get_time() / 1000ULL);
+
+    dash_state_t local = {0};
+    bool want_commit = false;
 
     switch (id) {
         case 1136: {
             if (dlc >= 8) {
-                g_dash_back.gear = payload[7];
-                g_dash_back.last_update_ms = now_ms;
-                g_dash_back.dirty = true;
+                local.gear = payload[7];
+                local.last_update_ms = now_ms;
+                
+                want_commit = true;
             }
             break;
         }
@@ -730,10 +374,13 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg)
                 uint16_t throttle_raw = (payload[4] << 8) | payload[5];
 
                 // store raw in back buffer
-                g_dash_back.rpm = rpm_raw;
-                g_dash_back.throttle = throttle_raw / 10.0f;
-                g_dash_back.last_update_ms = now_ms;
-                g_dash_back.dirty = true;
+                local.rpm = rpm_raw;
+                local.throttle = throttle_raw / 10.0f;
+                local.last_update_ms = now_ms;
+                
+                compute_shift_led_colors(local.rpm, local.shift_led_color);
+                local.gear_bg_color = compute_gear_bg_color(local.rpm);
+                want_commit = true;
             }
             break;
         }
@@ -742,11 +389,11 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg)
             uint16_t raw_oil     = (received_msg.data[6] << 8) | received_msg.data[7];
 
             // Haltech normalisation: Kelvin -> Celsius
-            g_dash_back.coolant_temp = (raw_coolant / 10.0f) - 273.15f;
-            g_dash_back.oil_temp     = (raw_oil     / 10.0f) - 273.15f;
+            local.coolant_temp = (raw_coolant / 10.0f) - 273.15f;
+            local.oil_temp     = (raw_oil     / 10.0f) - 273.15f;
 
-            g_dash_back.last_update_ms = esp_timer_get_time() / 1000;
-            g_dash_back.dirty = true;
+            local.last_update_ms = esp_timer_get_time() / 1000;
+            want_commit = true;
             break;
             }
         case 865: {
@@ -754,50 +401,50 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg)
             uint16_t raw_oilp  = (received_msg.data[2] << 8) | received_msg.data[3];
 
             // Haltech normalisation: kPa minus atmospheric offset
-            g_dash_back.fuel_pressure = (raw_fuel / 10.0f) - 101.3f;
-            g_dash_back.oil_pressure  = (raw_oilp / 10.0f) - 101.3f;
+            local.fuel_pressure = (raw_fuel / 10.0f) - 101.3f;
+            local.oil_pressure  = (raw_oilp / 10.0f) - 101.3f;
 
-            g_dash_back.last_update_ms = now_ms;
-            g_dash_back.dirty = true;
+            local.last_update_ms = now_ms;
+            want_commit.dirty = true;
             break;
         }
-        case 0x36B: {
+        case 875: {
             if (dlc >= 2) {
                 uint16_t brake_raw = (payload[0] << 8) | payload[1];
-                g_dash_back.brake_pressure = (brake_raw / 10.0f) - 101.3f;
-                g_dash_back.last_update_ms = now_ms;
-                g_dash_back.dirty = true;
+                local.brake_pressure = (brake_raw / 10.0f) - 101.3f;
+                local.last_update_ms = now_ms;
+                want_commit.dirty = true;
             }
             break;
         }
-        case 0x370: {
+        case 880: {
             if (dlc >= 2) {
                 uint16_t speed_raw = (payload[0] << 8) | payload[1];
-                g_dash_back.speed = speed_raw / 10.0f;
-                g_dash_back.last_update_ms = now_ms;
-                g_dash_back.dirty = true;
+                local.speed = speed_raw / 10.0f;
+                local.last_update_ms = now_ms;
+                want_commit = true;
             }
             break;
         }
-        case 0x372: {
+        case 882: {
             if (dlc >= 2) {
                 uint16_t raw_voltage = (payload[0] << 8) | payload[1];
-                g_dash_back.voltage = raw_voltage / 10.0f;
+                local.voltage = raw_voltage / 10.0f;
 
-                g_dash_back.last_update_ms = now_ms;
-                g_dash_back.dirty = true;
+                local.last_update_ms = now_ms;
+                want_commit = true;
             }
             break;
         }
-        case 0x3E9: {
+        case 1001: {
             if (dlc >= 6) {
                 uint16_t raw_lambda = (payload[4] << 8) | payload[5];
 
                 // Haltech normalisation: lambda = raw / 1000
-                g_dash_back.lambda = raw_lambda / 1000.0f;
+                local.lambda = raw_lambda / 1000.0f;
 
-                g_dash_back.last_update_ms = now_ms;
-                g_dash_back.dirty = true;
+                local.last_update_ms = now_ms;
+                want_commit = true;
             }
             break;
         }
@@ -808,11 +455,11 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg)
                 uint16_t raw_slip = (payload[0] << 8) | payload[1];
                 uint16_t raw_diff = (payload[2] << 8) | payload[3];
 
-                g_dash_back.wheel_slip = raw_slip / 10.0f;
-                g_dash_back.wheel_diff = raw_diff / 10.0f;
+                local.wheel_slip = raw_slip / 10.0f;
+                local.wheel_diff = raw_diff / 10.0f;
 
-                g_dash_back.last_update_ms = now_ms;
-                g_dash_back.dirty = true;
+                local.last_update_ms = now_ms;
+                want_commit = true;
             }
             break;
         }
@@ -820,17 +467,17 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg)
         case 0x36C: {
             //wheel speed
             if (dlc >= 8) {
-                g_dash_back.wheel_speed_fl = ((payload[0] << 8) | payload[1]) / 10.0f;
-                g_dash_back.wheel_speed_fr = ((payload[2] << 8) | payload[3]) / 10.0f;
-                g_dash_back.wheel_speed_rl = ((payload[4] << 8) | payload[5]) / 10.0f;
-                g_dash_back.wheel_speed_rr = ((payload[6] << 8) | payload[7]) / 10.0f;
+                local.wheel_speed_fl = ((payload[0] << 8) | payload[1]) / 10.0f;
+                local.wheel_speed_fr = ((payload[2] << 8) | payload[3]) / 10.0f;
+                local.wheel_speed_rl = ((payload[4] << 8) | payload[5]) / 10.0f;
+                local.wheel_speed_rr = ((payload[6] << 8) | payload[7]) / 10.0f;
 
-                g_dash_back.last_update_ms = now_ms;
-                g_dash_back.dirty = true;
+                local.last_update_ms = now_ms;
+                want_commit = true;
             }
             break;
         }
-        case 0x6F3: {
+        case 1779: {
 
             // Engine protection severity
             if (dlc >= 8) {
@@ -839,12 +486,12 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg)
                 uint8_t severity = payload[5];
                 uint16_t dtc = (payload[6] << 8) | payload[7];
 
-                g_dash_back.leak_flags   = leaking_flags;
-                g_dash_back.severity     = severity;
-                g_dash_back.dtc_code     = dtc;
+                local.leak_flags   = leaking_flags;
+                local.severity     = severity;
+                local.dtc_code     = dtc;
 
-                g_dash_back.last_update_ms = now_ms;
-                g_dash_back.dirty          = true;
+                local.last_update_ms = now_ms;
+                want_commit = true;
             }
             break;
         }
@@ -853,6 +500,48 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg)
             // ignore
             break;
     }
+    taskENTER_CRITICAL();
+        // Minimal copy: for each field that may be non-zero in local copy them
+        if (local.last_update_ms) g_dash_back.last_update_ms = local.last_update_ms;
+        if (local.rpm) g_dash_back.rpm = local.rpm;
+        if (local.throttle) g_dash_back.throttle = local.throttle;
+        if (local.lambda) g_dash_back.lambda = local.lambda;
+        if (local.speed) g_dash_back.speed = local.speed;
+        if (local.brake) g_dash_back.brake = local.brake;
+        if (local.voltage) g_dash_back.voltage = local.voltage;
+        if (local.gear) g_dash_back.gear = local.gear;
+
+        if (local.fuel_pressure) g_dash_back.fuel_pressure = local.fuel_pressure;
+        if (local.oil_pressure) g_dash_back.oil_pressure = local.oil_pressure;
+        if (local.coolant_temp) g_dash_back.coolant_temp = local.coolant_temp;
+        if (local.oil_temp) g_dash_back.oil_temp = local.oil_temp;
+
+        // wheel values (copy if non-zero)
+        if (local.wheelSlipFL) g_dash_back.wheelSlipFL = local.wheelSlipFL;
+        if (local.wheelSlipFR) g_dash_back.wheelSlipFR = local.wheelSlipFR;
+        if (local.wheelSlipRL) g_dash_back.wheelSlipRL = local.wheelSlipRL;
+        if (local.wheelSlipRR) g_dash_back.wheelSlipRR = local.wheelSlipRR;
+
+        if (local.wheelSpeedFL) g_dash_back.wheelSpeedFL = local.wheelSpeedFL;
+        if (local.wheelSpeedFR) g_dash_back.wheelSpeedFR = local.wheelSpeedFR;
+        if (local.wheelSpeedRL) g_dash_back.wheelSpeedRL = local.wheelSpeedRL;
+        if (local.wheelSpeedRR) g_dash_back.wheelSpeedRR = local.wheelSpeedRR;
+
+        for (int i = 0; i < NUM_SHIFT_LEDS; ++i) {
+                if (local.shift_led_color[i].full != 0) { // approximate test
+                    g_dash_back.shift_led_color[i] = local.shift_led_color[i];
+                }
+            }
+            // gear bg colour
+            if (local.gear_bg_color.full != 0) g_dash_back.gear_bg_color = local.gear_bg_color;
+
+            // other bytes copy
+            for (int i = 0; i < 8; ++i) {
+                if (local.other_bytes[i]) g_dash_back.other_bytes[i] = local.other_bytes[i];
+            }
+
+        g_dash_back.dirty = true;
+        taskEXIT_CRITICAL();
 }
 
 void init_lvgl_tick_timer(void) {
@@ -903,28 +592,52 @@ void Display_Task(void *pvParameters) {
         if (now - last_ui_update >= 20) {      
             last_ui_update = now;
 
-            // Check if new values arrived
-            if (g_dash_back.dirty) {
-
                 // swap buffers
-                taskENTER_CRITICAL();
-                g_dash_front = g_dash_back;
+            bool will_update = false;
+            taskENTER_CRITICAL();
+            if (g_dash_back.dirty) {
+                g_dash_front = g_dash_back;        // fast struct copy
                 g_dash_back.dirty = false;
-                taskEXIT_CRITICAL();
+                will_update = true;
+            }
+            taskEXIT_CRITICAL();
 
-                // --- LVGL UI UPDATE ---
-                lv_label_set_text_fmt(label_rpm, "%u", g_dash_front.rpm);
-                lv_label_set_text_fmt(label_throttle, "%.1f", g_dash_front.throttle);
-                lv_label_set_text_fmt(label_lambda, "%.3f", g_dash_front.lambda);
-                lv_label_set_text_fmt(label_speed, "%.1f", g_dash_front.speed);
-                lv_label_set_text_fmt(label_brake, "%.1f", g_dash_front.brake);
-                lv_label_set_text_fmt(label_voltage, "%.1f", g_dash_front.voltage);
-                lv_label_set_text_fmt(label_gear, "%u", g_dash_front.gear);
-                lv_label_set_text_fmt(label_fuelp, "%.1f", g_dash_front.fuel_pressure);
-                lv_label_set_text_fmt(label_oilp, "%.1f", g_dash_front.oil_pressure);
-                lv_label_set_text_fmt(label_coolant, "%.1f", g_dash_front.coolant_temp);
-                lv_label_set_text_fmt(label_oiltemp, "%.1f", g_dash_front.oil_temp);
-                // etc…
+            if (!will_update) {
+                // Nothing new — short sleep
+                vTaskDelay(pdMS_TO_TICKS(2));
+                continue;
+            }
+            // single LVGL lock; keep it short and only do DOM operations
+            if (lvgl_port_lock(10)) { // 10 ms timeout
+                // update textual labels (use lv_label_set_text or formatted helper)
+                lv_label_set_text_fmt(rpm_label, "%u", g_dash_front.rpm);
+                lv_label_set_text_fmt(throttle_label, "%.1f", g_dash_front.throttle);
+                lv_label_set_text_fmt(lambda_label, "%.3f", g_dash_front.lambda);
+                lv_label_set_text_fmt(speed_label, "%.1f", g_dash_front.speed);
+                lv_label_set_text_fmt(brake_label, "%.1f", g_dash_front.brake);
+                lv_label_set_text_fmt(voltage_label, "%.1f", g_dash_front.voltage);
+                lv_label_set_text_fmt(gear_label, "%u", g_dash_front.gear);
+                lv_label_set_text_fmt(fuel_pressure_label, "%.1f", g_dash_front.fuel_pressure);
+                lv_label_set_text_fmt(oil_pressure_label, "%.1f", g_dash_front.oil_pressure);
+                lv_label_set_text_fmt(coolant_label, "%.1f", g_dash_front.coolant_temp);
+                lv_label_set_text_fmt(oiltemp_label, "%.1f", g_dash_front.oil_temp);
+
+                // gear bg color (precomputed)
+                lv_obj_set_style_bg_color(gear_label, g_dash_front.gear_bg_color, 0);
+
+                // shift LEDs: paint from precomputed colours
+                for (int i = 0; i < NUM_SHIFT_LEDS; ++i) {
+                    if (shift_leds[i] && lv_obj_is_valid(shift_leds[i])) {
+                        lv_obj_set_style_bg_color(shift_leds[i], g_dash_front.shift_led_color[i], 0);
+                    }
+                }
+
+                // ... any small DOM-only changes go here ...
+
+                lvgl_port_unlock();
+            } else {
+                // could not lock LVGL quickly — skip this frame
+                ESP_LOGW("DISPLAY", "lvgl lock timeout");
             }
         }
 
