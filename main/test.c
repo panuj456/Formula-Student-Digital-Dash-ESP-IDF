@@ -286,47 +286,73 @@ void dash_create2(void)
 }
 
 lv_obj_t* shift_light_create(lv_obj_t *parent) {
-    lv_coord_t start_x = (800 - (NUM_SHIFT_LEDS * SHIFT_LED_WIDTH + (NUM_SHIFT_LEDS - 1) * SHIFT_LED_GAP)) / 2;
+    // Calculate starting X position for centering (assuming 800px wide display)
+    lv_coord_t total_width = (NUM_SHIFT_LEDS * SHIFT_LED_WIDTH + (NUM_SHIFT_LEDS - 1) * SHIFT_LED_GAP);
+    lv_coord_t start_x = (800 - total_width) / 2;
     lv_coord_t y = 50;
 
     for (int i = 0; i < NUM_SHIFT_LEDS; i++) {
+        // Create the individual LED object and store its pointer globally
         shift_leds[i] = lv_obj_create(parent);
         lv_obj_set_size(shift_leds[i], SHIFT_LED_WIDTH, SHIFT_LED_HEIGHT);
         lv_obj_clear_flag(shift_leds[i], LV_OBJ_FLAG_SCROLLABLE);
         lv_obj_set_style_radius(shift_leds[i], LV_RADIUS_CIRCLE, 0);
-        lv_obj_set_style_bg_color(shift_leds[i], lv_color_hex(0xAAAAAA), 0);
+        
+        // Set initial background color (grey)
+        lv_color_t default_color = lv_color_hex(0xAAAAAA);
+        lv_obj_set_style_bg_color(shift_leds[i], default_color, 0);
         lv_obj_set_style_bg_opa(shift_leds[i], LV_OPA_COVER, 0);
+        
         lv_obj_align(shift_leds[i], LV_ALIGN_TOP_LEFT, start_x + i * (SHIFT_LED_WIDTH + SHIFT_LED_GAP), y);
 
-        led_colors[i] = lv_color_hex(0xAAAAAA);
+        // Store the default color in our state array
+        led_colors[i] = default_color;
     }
 
     return parent;
 }
 
-void shift_light_update(uint16_t rpm) {
-    for (int i = 0; i < NUM_SHIFT_LEDS; i++) {
-        if (!shift_leds[i] || !lv_obj_is_valid(shift_leds[i])) continue;
+void update_shift_lights_optimized(uint16_t current_rpm) {
+    uint32_t active_color_hex = 0xAAAAAA; // Default color (grey/off)
 
-        if (rpm >= rpm_thresholds[i]) {
-            // Color based on how far you are in the LED range
-            if (i < NUM_SHIFT_LEDS * 0.4) {
-                // First 60%: green
-                shift_leds[i], lv_color_hex(0x00FF00);
-            } else if (i < NUM_SHIFT_LEDS * 0.75) {
-                // Next ~25%: yellow
-                shift_leds[i], lv_color_hex(0xFFFF00);
-            } else if (i < NUM_SHIFT_LEDS * 0.9) {
-                // Next ~10%: red
-                shift_leds[i], lv_color_hex(0xFF0000);
-            } else {
-                // Final ~5%: purple
-                shift_leds[i], lv_color_hex(0x800080);  // Purple
+    // Iterate once through all potential LED stages
+    for (int i = 0; i < NUM_SHIFT_LEDS; i++) {
+        
+        // Check if the current RPM meets or exceeds this specific LED's threshold
+        if (current_rpm >= shift_map[i].threshold) {
+            
+            // If yes, update the current active color to the color for this stage
+            active_color_hex = shift_map[i].color_rgb;
+            
+            // Turn this specific LED object ON with the determined color
+            lv_color_t target_color = lv_color_hex(active_color_hex);
+            
+            if (lv_color_cmp(led_colors[i], target_color) != 0) {
+                lv_obj_set_style_bg_color(shift_leds[i], target_color, 0);
+                led_colors[i] = target_color;
             }
+
         } else {
-            // Dim/off
-            shift_leds[i], lv_color_hex(0x222222);
+            
+            // If the RPM falls below this threshold, all subsequent LEDs must be OFF
+            lv_color_t target_color = lv_color_hex(0xAAAAAA); // Grey (off)
+
+            if (lv_color_cmp(led_colors[i], target_color) != 0) {
+                lv_obj_set_style_bg_color(shift_leds[i], target_color, 0);
+                led_colors[i] = target_color;
+            }
+            
+            // Since the thresholds are sorted, we can immediately break the loop
+            // as all remaining LEDs will also be off.h
+            // Note: If you want *all* LEDs off above a certain threshold (rather than just subsequent ones),
+            // you'd need slightly different logic, but this works for typical sequential shift lights.
+            // break; 
         }
+    }
+
+    // Flashing logic for MAX RPM can still be added here
+    if (current_rpm >= RPM_MAX) {
+       // initiate flashing routine using LVGL animations or a timer
     }
 }
 
@@ -337,6 +363,21 @@ static lv_color_t compute_gear_bg_color(uint16_t rpm)
     if (rpm <= 3000)  return lv_color_hex(0x990000);     // low rev
     return lv_color_hex(0x000000);                       // normal
 }
+
+void display_shift_light_color(uint16_t current_rpm) {
+    uint32_t active_color = 0x000000; // Default off (black)
+
+    // Iterate through the map to find the appropriate color based on RPM
+    for (size_t i = 0; i < NUM_SHIFT_LEDS; i++) {
+        if (current_rpm >= shift_map[i].threshold) {
+            active_color = shift_map[i].color_rgb;
+        } else {
+            // Since thresholds are ordered, we can stop iterating once we pass the current RPM
+            break; 
+        }
+    }
+}
+
 
 void decode_and_dispatch(const encoded_message_t *encoded_msg)
 {
@@ -378,7 +419,6 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg)
                 local.throttle = throttle_raw / 10.0f;
                 local.last_update_ms = now_ms;
                 
-                compute_shift_led_colors(local.rpm, local.shift_led_color);
                 local.gear_bg_color = compute_gear_bg_color(local.rpm);
                 want_commit = true;
             }
@@ -527,11 +567,7 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg)
         if (local.wheelSpeedRL) g_dash_back.wheelSpeedRL = local.wheelSpeedRL;
         if (local.wheelSpeedRR) g_dash_back.wheelSpeedRR = local.wheelSpeedRR;
 
-        for (int i = 0; i < NUM_SHIFT_LEDS; ++i) {
-                if (local.shift_led_color[i].full != 0) { // approximate test
-                    g_dash_back.shift_led_color[i] = local.shift_led_color[i];
-                }
-            }
+
             // gear bg colour
             if (local.gear_bg_color.full != 0) g_dash_back.gear_bg_color = local.gear_bg_color;
 
@@ -542,6 +578,7 @@ void decode_and_dispatch(const encoded_message_t *encoded_msg)
 
         g_dash_back.dirty = true;
         taskEXIT_CRITICAL();
+    }
 }
 
 void init_lvgl_tick_timer(void) {
@@ -624,6 +661,7 @@ void Display_Task(void *pvParameters) {
 
                 // gear bg color (precomputed)
                 lv_obj_set_style_bg_color(gear_label, g_dash_front.gear_bg_color, 0);
+                update_shift_lights_optimized(g_dash_front.rpm);
 
                 // shift LEDs: paint from precomputed colours
                 for (int i = 0; i < NUM_SHIFT_LEDS; ++i) {

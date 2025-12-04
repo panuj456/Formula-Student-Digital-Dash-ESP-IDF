@@ -26,9 +26,27 @@
 #define RPM_MIN 1000
 #define RPM_MAX 11200
 
-// Example thresholds (adjust to your engine)
-static const uint16_t rpm_thresholds[NUM_SHIFT_LEDS] = {
-    2000, 8000, 8280, 8560, 8840, 9120, 9400, 9680, 9960, 10240, 10520, 10800
+typedef struct {
+    uint16_t threshold;
+    uint32_t color_rgb; // Use uint32_t for RGB hex values (0xRRGGBB)
+} RpmThresholdColor;
+
+#define NUM_SHIFT_LEDS (sizeof(shift_map) / sizeof(RpmThresholdColor))
+
+static const RpmThresholdColor shift_map[] = {
+    // Threshold, Color (0xRRGGBB format)
+    {2000,  0x00FF00}, // Green
+    {8000,  0x00FF00},
+    {8280,  0x00FF00},
+    {8560,  0x00FF00},
+    {8840,  0xFFFF00}, // Yellow
+    {9120,  0xFFFF00},
+    {9400,  0xFFFF00},
+    {9680,  0xFF0000}, // Red
+    {9960,  0xFF0000},
+    {10240, 0xFF0000},
+    {10520, 0x800080}, // Purple/Magenta
+    {10800, 0x800080}
 };
 
 static lv_obj_t *rpm_arc;
@@ -59,7 +77,7 @@ void LVGL_Task(void *pvParameters);
 void lv_tick_task(void* arg);
 void init_lvgl_tick_timer(void);
 void Decode_Task(void *pvParameters);
-static lv_color_t compute_gear_bg_color(uint16_t rpm);
+
 
 //size_t decode_message(const uint8_t *buffer, void *fields_out[]);
 
